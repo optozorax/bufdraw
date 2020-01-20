@@ -1,13 +1,10 @@
 use miniquad::*;
+use crate::vec::*;
 
 pub mod image;
+pub mod vec;
 
 pub use::miniquad::MouseButton;
-
-pub struct Vec2i {
-    pub x: i32, 
-    pub y: i32
-}
 
 pub enum ButtonState {
     Down,
@@ -37,30 +34,6 @@ pub trait ImageTrait {
     fn get_rgba8_buffer(&self) -> &[u8];
     fn get_width(&self) -> usize;
     fn get_height(&self) -> usize;
-}
-
-impl Vec2i {
-    pub fn new(x: i32, y: i32) -> Vec2i {
-        Vec2i { x, y }
-    }
-}
-
-impl Default for Vec2i {
-    fn default() -> Self {
-        Vec2i::new(0, 0)
-    }
-}
-
-impl From<(i32, i32)> for Vec2i {
-    fn from(val: (i32, i32)) -> Self {
-        Vec2i::new(val.0, val.1)
-    }
-}
-
-impl From<(f32, f32)> for Vec2i {
-    fn from(val: (f32, f32)) -> Self {
-        Vec2i::new(val.0 as i32, val.1 as i32)
-    }
 }
 
 struct MyWindow<T: MyEvents + ImageTrait> {

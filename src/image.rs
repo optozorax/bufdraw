@@ -1,4 +1,4 @@
-use crate::Vec2i;
+use crate::vec::*;
 
 pub enum PixelPos {
     R,
@@ -58,7 +58,7 @@ pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     image.buffer[offset + 3] = color.a;
 }
 
-pub fn function_for_all_pixels<F: Fn(usize, usize) -> i32>(image: &mut Image, f: F) {
+pub fn function_for_all_pixels<F: FnMut(usize, usize) -> i32>(image: &mut Image, mut f: F) {
     use PixelPos::*;
     let width = image.width;
     let height = image.height;
