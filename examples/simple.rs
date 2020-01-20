@@ -26,11 +26,11 @@ impl ImageTrait for Window {
 impl Window {
     fn new() -> Self {
         Window {
-            image: Image::new(&Vec2i { x: 1920, y: 1080 }),
+            image: Image::new(&Vec2i::new(1920, 1080)),
             counter: 0,
-            cursor: Vec2i { x: 0, y: 0 },
-            click: Vec2i { x: 0, y: 0 },
-            wheel: Vec2i { x: 0, y: 0 },
+            cursor: Vec2i::default(),
+            click: Vec2i::default(),
+            wheel: Vec2i::default(),
         }
     }
 }

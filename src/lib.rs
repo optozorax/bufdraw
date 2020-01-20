@@ -45,6 +45,24 @@ impl Vec2i {
     }
 }
 
+impl Default for Vec2i {
+    fn default() -> Self {
+        Vec2i::new(0, 0)
+    }
+}
+
+impl From<(i32, i32)> for Vec2i {
+    fn from(val: (i32, i32)) -> Self {
+        Vec2i::new(val.0, val.1)
+    }
+}
+
+impl From<(f32, f32)> for Vec2i {
+    fn from(val: (f32, f32)) -> Self {
+        Vec2i::new(val.0 as i32, val.1 as i32)
+    }
+}
+
 struct MyWindow<T: MyEvents + ImageTrait> {
     external: T,
 
@@ -136,24 +154,24 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
     }
 
     fn resize_event(&mut self, _ctx: &mut Context, width: f32, height: f32) {
-        self.external.resize_event(Vec2i::new(width as i32, height as i32));
+        self.external.resize_event((width, height).into());
     }
 
     fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
-        self.external.mouse_motion_event(Vec2i::new(x as i32, y as i32), Vec2i::new(dx as i32, dy as i32), );
+        self.external.mouse_motion_event((x, y).into(), (dx, dy).into());
     }
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-        self.external.mouse_wheel_event(Vec2i::new(x as i32, y as i32), MouseWheel::RotateUp, false);
+        self.external.mouse_wheel_event((x, y).into(), MouseWheel::RotateUp, false);
         // TODO wait interface for wheel direction
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        self.external.mouse_button_event(button, ButtonState::Down, Vec2i::new(x as i32, y as i32));
+        self.external.mouse_button_event(button, ButtonState::Down, (x, y).into());
     }
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        self.external.mouse_button_event(button, ButtonState::Up, Vec2i::new(x as i32, y as i32));
+        self.external.mouse_button_event(button, ButtonState::Up, (x, y).into());
     }
 
     fn char_event(&mut self, _ctx: &mut Context, character: char, keymods: KeyMods, repeat: bool) {
