@@ -1,5 +1,7 @@
 use miniquad::*;
 
+pub mod image;
+
 pub use::miniquad::MouseButton;
 
 pub struct Vec2i {
@@ -35,6 +37,12 @@ pub trait ImageTrait {
     fn get_rgba8_buffer(&self) -> &[u8];
     fn get_width(&self) -> usize;
     fn get_height(&self) -> usize;
+}
+
+impl Vec2i {
+    pub fn new(x: i32, y: i32) -> Vec2i {
+        Vec2i { x, y }
+    }
 }
 
 struct MyWindow<T: MyEvents + ImageTrait> {
@@ -121,7 +129,6 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
         let bindings = make_bindings(self);
         ctx.apply_bindings(&bindings);
 
-        ctx.apply_uniforms(&shader::Uniforms {offset: (0.0, 0.0)});
         ctx.draw(0, 6, 1);
         ctx.end_render_pass();
 
@@ -129,24 +136,24 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
     }
 
     fn resize_event(&mut self, _ctx: &mut Context, width: f32, height: f32) {
-        self.external.resize_event(Vec2i { x: width as i32, y: height as i32 });
+        self.external.resize_event(Vec2i::new(width as i32, height as i32));
     }
 
     fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
-        self.external.mouse_motion_event(Vec2i { x: x as i32, y: y as i32 }, Vec2i { x: dx as i32, y: dy as i32 }, );
+        self.external.mouse_motion_event(Vec2i::new(x as i32, y as i32), Vec2i::new(dx as i32, dy as i32), );
     }
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-        self.external.mouse_wheel_event(Vec2i { x: x as i32, y: y as i32 }, MouseWheel::RotateUp, false);
+        self.external.mouse_wheel_event(Vec2i::new(x as i32, y as i32), MouseWheel::RotateUp, false);
         // TODO wait interface for wheel direction
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        self.external.mouse_button_event(button, ButtonState::Down, Vec2i { x: x as i32, y: y as i32 });
+        self.external.mouse_button_event(button, ButtonState::Down, Vec2i::new(x as i32, y as i32));
     }
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        self.external.mouse_button_event(button, ButtonState::Up, Vec2i { x: x as i32, y: y as i32 });
+        self.external.mouse_button_event(button, ButtonState::Up, Vec2i::new(x as i32, y as i32));
     }
 
     fn char_event(&mut self, _ctx: &mut Context, character: char, keymods: KeyMods, repeat: bool) {
@@ -201,14 +208,9 @@ mod shader {
     }"#;
 
     pub const META: ShaderMeta = ShaderMeta {
-        images: &["tex"],
+        images: &[],
         uniforms: UniformBlockLayout {
-            uniforms: &[("offset", UniformType::Float2)],
+            uniforms: &[],
         },
     };
-
-    #[repr(C)]
-    pub struct Uniforms {
-        pub offset: (f32, f32),
-    }
 }
