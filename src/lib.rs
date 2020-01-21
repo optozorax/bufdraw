@@ -5,6 +5,8 @@ pub mod image;
 pub mod vec;
 
 pub use::miniquad::MouseButton;
+pub use::miniquad::KeyCode;
+pub use::miniquad::KeyMods;
 
 pub enum ButtonState {
     Down,

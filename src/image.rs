@@ -13,6 +13,7 @@ pub struct Image {
     pub height: usize,
 }
 
+#[derive(Clone, Debug)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -47,6 +48,14 @@ impl Color {
     pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
+
+    pub fn rgb(r: u8, g: u8, b: u8) -> Color {
+        Color::rgba(r, g, b, 255)
+    }
+
+    pub fn gray(rgb: u8) -> Color {
+        Color::rgb(rgb, rgb, rgb)
+    }
 }
 
 pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
@@ -58,34 +67,16 @@ pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     image.buffer[offset + 3] = color.a;
 }
 
-pub fn function_for_all_pixels<F: FnMut(usize, usize) -> i32>(image: &mut Image, mut f: F) {
-    use PixelPos::*;
-    let width = image.width;
-    let height = image.height;
-    let image_iter = image.buffer
-        .iter_mut()
-        .enumerate()
-        .filter(|(index, _)| index < &(width * height * 4))
-        .map(|(index, object)| 
-            (
-                index as usize / 4 % width, 
-                index as usize / 4 / width, 
-                match index % 4 {
-                    0 => R, 
-                    1 => G, 
-                    2 => B, 
-                    3 => A, 
-                    _ => unreachable!()
-                },
-                object
-            )
-        );
-
-    for (x, y, pos, pix) in image_iter {
-        *pix = (match pos {
-            R | G | B => f(x, y),
-            A => 255,
-        } % 256) as u8;
+pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Image, mut f: F) {
+    let mut iter = image.buffer.iter_mut();
+    for y in 0..image.height {
+        for x in 0..image.width {
+            let color = f(x, y);
+            if let Some(r) = iter.next() { *r = color.r; }
+            if let Some(g) = iter.next() { *g = color.g; }
+            if let Some(b) = iter.next() { *b = color.b; }
+            if let Some(a) = iter.next() { *a = color.a; }
+        }
     }
 }
 

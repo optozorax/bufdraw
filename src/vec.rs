@@ -28,6 +28,29 @@ impl ops::Sub<&Vec2i> for Vec2i {
 	}
 }
 
+impl ops::Mul<i32> for Vec2i {
+    type Output = Vec2i;
+
+    fn mul(self, _rhs: i32) -> Vec2i {
+        Vec2i { 
+            x: self.x * _rhs, 
+            y: self.y * _rhs
+        }
+    }
+}
+
+impl ops::Div<i32> for Vec2i {
+    type Output = Vec2i;
+
+    fn div(self, _rhs: i32) -> Vec2i {
+        Vec2i { 
+            x: self.x / _rhs, 
+            y: self.y / _rhs
+        }
+    }
+}
+
+
 impl ops::AddAssign for Vec2i {
     fn add_assign(&mut self, other: Self) {
         *self = Self {

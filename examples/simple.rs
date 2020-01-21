@@ -1,4 +1,5 @@
 use bufdraw::*;
+use bufdraw::vec::*;
 use bufdraw::image::*;
 
 struct Window {
@@ -43,7 +44,7 @@ impl MyEvents for Window {
     fn draw(&mut self) {
         self.counter += 1;
         let counter = self.counter as usize;
-        function_for_all_pixels(&mut self.image, |x, y| ((x & y) ^ counter) as i32);
+        function_for_all_pixels(&mut self.image, |x, y| Color::gray(((x & y) ^ counter) as u8));
         let size = Vec2i::new(10, 10);
         rect(&mut self.image, &self.cursor, &size, &Color::rgba(255, 0, 0, 255));
         rect(&mut self.image, &self.click, &size, &Color::rgba(0, 255, 0, 255));
