@@ -2,6 +2,8 @@ use bufdraw::*;
 use bufdraw::vec::*;
 use bufdraw::image::*;
 
+use log::info;
+
 struct Window {
     image: Image,
     counter: u32,
@@ -61,6 +63,7 @@ impl MyEvents for Window {
 
     fn mouse_button_event(&mut self, _button: MouseButton, _state: ButtonState, pos: Vec2i) {
         self.click = pos;
+        info!("Mouse button clicked");
     }
 
     fn mouse_wheel_event(&mut self, pos: Vec2i, _dir: MouseWheel, _press: bool) {

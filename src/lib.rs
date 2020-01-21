@@ -4,9 +4,10 @@ use crate::vec::*;
 pub mod image;
 pub mod vec;
 
-pub use::miniquad::MouseButton;
-pub use::miniquad::KeyCode;
-pub use::miniquad::KeyMods;
+pub use miniquad::MouseButton;
+pub use miniquad::KeyCode;
+pub use miniquad::KeyMods;
+pub use miniquad::date::now;
 
 pub enum ButtonState {
     Down,
@@ -126,6 +127,8 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
         ctx.end_render_pass();
 
         ctx.commit_frame();
+
+        bindings.images[0].delete();
     }
 
     fn resize_event(&mut self, _ctx: &mut Context, width: f32, height: f32) {
@@ -167,6 +170,9 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 }
 
 pub fn start<T: 'static +  MyEvents + ImageTrait>(t: T) {
+    #[cfg(target_arch = "wasm32")]
+    sapp_console_log::init().unwrap();
+
     miniquad::start(conf::Conf::default(), |ctx| {
         let mut result = MyWindow::new(ctx, t);
         let current_size = ctx.screen_size();
