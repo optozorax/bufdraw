@@ -20,5 +20,9 @@ sapp-console-log = "0.1.0"
 
 [dev-dependencies]
 log = "0.4"
-raqote = "0.7"
-font-kit = "0.5"
+rusttype = "0.8"
+
+[dev-dependencies.raqote]
+version = "0.7"
+default-features = false
+features = []
