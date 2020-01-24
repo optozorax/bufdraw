@@ -1,3 +1,4 @@
+use crate::ImageTrait;
 use crate::vec::*;
 
 pub enum PixelPos {
@@ -11,6 +12,12 @@ pub struct Image {
     pub buffer: Vec<u8>,
     pub width: usize,
     pub height: usize,
+}
+
+impl ImageTrait for Image {
+    fn get_rgba8_buffer(&self) -> &[u8] { &self.buffer }
+    fn get_width(&self) -> usize { self.width }
+    fn get_height(&self) -> usize { self.height }
 }
 
 #[derive(Clone, Debug)]
