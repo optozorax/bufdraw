@@ -47,8 +47,9 @@ struct MyWindow<T: MyEvents + ImageTrait> {
     pipeline: Pipeline,
 }
 
-fn make_bindings<T: MyEvents + ImageTrait>(my_window: &mut MyWindow<T>) -> Bindings {
+fn make_bindings<T: MyEvents + ImageTrait>(ctx: &mut Context, my_window: &mut MyWindow<T>) -> Bindings {
     let texture = Texture::from_rgba8(
+        ctx,
         my_window.external.get_width() as u16, 
         my_window.external.get_height() as u16, 
         &my_window.external.get_rgba8_buffer()
@@ -120,7 +121,7 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 
         self.external.draw();
 
-        let bindings = make_bindings(self);
+        let bindings = make_bindings(ctx, self);
         ctx.apply_bindings(&bindings);
 
         ctx.draw(0, 6, 1);
