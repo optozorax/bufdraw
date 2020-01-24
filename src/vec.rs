@@ -9,6 +9,7 @@ pub struct Vec2i {
 impl ops::Add<&Vec2i> for Vec2i {
 	type Output = Vec2i;
 
+    #[inline]
 	fn add(self, _rhs: &Vec2i) -> Vec2i {
 		Vec2i { 
 			x: self.x + _rhs.x, 
@@ -20,6 +21,7 @@ impl ops::Add<&Vec2i> for Vec2i {
 impl ops::Sub<&Vec2i> for Vec2i {
 	type Output = Vec2i;
 
+    #[inline]
 	fn sub(self, _rhs: &Vec2i) -> Vec2i {
 		Vec2i { 
 			x: self.x - _rhs.x, 
@@ -31,6 +33,7 @@ impl ops::Sub<&Vec2i> for Vec2i {
 impl ops::Mul<i32> for Vec2i {
     type Output = Vec2i;
 
+    #[inline]
     fn mul(self, _rhs: i32) -> Vec2i {
         Vec2i { 
             x: self.x * _rhs, 
@@ -42,6 +45,7 @@ impl ops::Mul<i32> for Vec2i {
 impl ops::Div<i32> for Vec2i {
     type Output = Vec2i;
 
+    #[inline]
     fn div(self, _rhs: i32) -> Vec2i {
         Vec2i { 
             x: self.x / _rhs, 
@@ -52,6 +56,7 @@ impl ops::Div<i32> for Vec2i {
 
 
 impl ops::AddAssign for Vec2i {
+    #[inline]
     fn add_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x + other.x,
@@ -61,6 +66,7 @@ impl ops::AddAssign for Vec2i {
 }
 
 impl ops::SubAssign for Vec2i {
+    #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x - other.x,
@@ -70,30 +76,35 @@ impl ops::SubAssign for Vec2i {
 }
 
 impl Vec2i {
+    #[inline]
     pub fn new(x: i32, y: i32) -> Vec2i {
         Vec2i { x, y }
     }
 }
 
 impl Default for Vec2i {
+    #[inline]
     fn default() -> Self {
         Vec2i::new(0, 0)
     }
 }
 
 impl From<(i32, i32)> for Vec2i {
+    #[inline]
     fn from(val: (i32, i32)) -> Self {
         Vec2i::new(val.0, val.1)
     }
 }
 
 impl From<(usize, usize)> for Vec2i {
+    #[inline]
     fn from(val: (usize, usize)) -> Self {
         Vec2i::new(val.0 as i32, val.1 as i32)
     }
 }
 
 impl From<(f32, f32)> for Vec2i {
+    #[inline]
     fn from(val: (f32, f32)) -> Self {
         Vec2i::new(val.0 as i32, val.1 as i32)
     }

@@ -42,22 +42,41 @@ impl Image {
         self.width = width;
         self.height = height;
     }
+
+    #[inline]
+    pub fn clear(&mut self, color: &Color) {
+        function_for_all_pixels(self, |_, _| color.clone());
+    }
 }
 
 impl Color {
+    #[inline]
     pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
 
+    #[inline]
+    pub fn rgba_f64(r: f64, g: f64, b: f64, a: f64) -> Color {
+        Color { 
+            r: (r * 255.0) as u8, 
+            g: (g * 255.0) as u8, 
+            b: (b * 255.0) as u8, 
+            a: (a * 255.0) as u8,
+        }
+    }
+
+    #[inline]
     pub fn rgb(r: u8, g: u8, b: u8) -> Color {
         Color::rgba(r, g, b, 255)
     }
 
+    #[inline]
     pub fn gray(rgb: u8) -> Color {
         Color::rgb(rgb, rgb, rgb)
     }
 }
 
+#[inline]
 pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     let mut offset = (pos.x + pos.y * image.width as i32) as usize;
     offset *= 4;
@@ -67,6 +86,7 @@ pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     image.buffer[offset + 3] = color.a;
 }
 
+#[inline]
 pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Image, mut f: F) {
     let mut iter = image.buffer.iter_mut();
     for y in 0..image.height {
@@ -80,10 +100,11 @@ pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Imag
     }
 }
 
+#[inline]
 pub fn rect(mut image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
-    for y in 0..size.y {
-        for x in 0..size.x {
-            set_pixel(&mut image, &Vec2i::new(pos.x + x, pos.y + y), color);   
+    for y in pos.y.max(0)..(image.height as i32).min(size.y + pos.y) {
+        for x in pos.x.max(0)..(image.width as i32).min(size.x + pos.x) {
+            set_pixel(&mut image, &Vec2i::new(x, y), color);   
         }
     }
 }
