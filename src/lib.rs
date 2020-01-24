@@ -173,6 +173,12 @@ pub fn start<T: 'static +  MyEvents + ImageTrait>(t: T) {
     #[cfg(target_arch = "wasm32")]
     sapp_console_log::init().unwrap();
 
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        std::env::set_var("RUST_LOG", "info");
+        env_logger::init();
+    }
+
     miniquad::start(conf::Conf::default(), |ctx| {
         let mut result = MyWindow::new(ctx, t);
         let current_size = ctx.screen_size();
