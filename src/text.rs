@@ -34,6 +34,6 @@ pub fn draw_text(
 	            });
 	        }
 	    }
-	    y_offset += v_metrics.ascent;
+	    y_offset += v_metrics.ascent - v_metrics.descent + v_metrics.line_gap;
 	}
 }
