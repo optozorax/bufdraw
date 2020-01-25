@@ -84,6 +84,19 @@ impl Color {
 }
 
 #[inline]
+pub fn get_pixel(image: &Image, pos: &Vec2i) -> Color {
+    let mut offset = (pos.x + pos.y * image.width as i32) as usize;
+    offset *= 4;
+    assert!(offset + 3 < image.buffer.len());
+    Color::rgba(
+        image.buffer[offset + 0],
+        image.buffer[offset + 1],
+        image.buffer[offset + 2],
+        image.buffer[offset + 3],
+    )
+}
+
+#[inline]
 pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     let mut offset = (pos.x + pos.y * image.width as i32) as usize;
     offset *= 4;

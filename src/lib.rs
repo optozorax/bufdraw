@@ -3,11 +3,14 @@ use crate::vec::*;
 
 pub mod image;
 pub mod vec;
+pub mod text;
+pub mod measure;
 
 pub use miniquad::MouseButton;
 pub use miniquad::KeyCode;
 pub use miniquad::KeyMods;
 pub use miniquad::date::now;
+pub use rusttype::Font;
 
 pub enum ButtonState {
     Down,
