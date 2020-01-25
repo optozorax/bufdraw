@@ -1,6 +1,6 @@
 [package]
 name = "bufdraw"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["Ilya Sheprut <optozorax@gmail.com>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
@@ -10,7 +10,7 @@ Cross-platform window context and rendering library in buffer.
 """
 
 [dependencies]
-miniquad = "0.2.17"
+miniquad = "0.2.18"
 rusttype = "0.8"
 
 #[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
