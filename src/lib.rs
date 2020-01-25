@@ -15,9 +15,18 @@ pub enum ButtonState {
     Up,
 }
 
-pub enum MouseWheel {
+#[derive(Debug)]
+pub enum MouseWheelVertical {
+    Nothing,
     RotateUp,
     RotateDown,
+}
+
+#[derive(Debug)]
+pub enum MouseWheelHorizontal {
+    Nothing,
+    RotateLeft,
+    RotateRight,
 }
 
 pub trait MyEvents {
@@ -26,7 +35,7 @@ pub trait MyEvents {
     fn draw(&mut self) {}
 
     fn resize_event(&mut self, _new_size: Vec2i) {}
-    fn mouse_wheel_event(&mut self, _pos: Vec2i, _dir: MouseWheel, _press: bool) {}
+    fn mouse_wheel_event(&mut self, _pos: Vec2i, _dir_vertical: MouseWheelVertical, _dir_horizontal: MouseWheelHorizontal) {}
     fn mouse_motion_event(&mut self, _pos: Vec2i, _offset: Vec2i) {}
     fn mouse_button_event(&mut self, _button: MouseButton, _state: ButtonState, _pos: Vec2i) {}
     fn char_event(&mut self, _character: char, _keymods: KeyMods, _repeat: bool) {}
@@ -45,6 +54,8 @@ struct MyWindow<T: MyEvents + ImageTrait> {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     pipeline: Pipeline,
+
+    last_mouse_pos: Vec2i,
 }
 
 fn make_bindings<T: MyEvents + ImageTrait>(ctx: &mut Context, my_window: &mut MyWindow<T>) -> Bindings {
@@ -93,6 +104,7 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
             external,
             vertex_buffer,
             index_buffer,
+            last_mouse_pos: Vec2i::default(),
             pipeline: {
                 let shader = Shader::new(ctx, shader::VERTEX, shader::FRAGMENT, shader::META);
 
@@ -137,19 +149,35 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
     }
 
     fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
+        self.last_mouse_pos = (x, y).into();
         self.external.mouse_motion_event((x, y).into(), (dx, dy).into());
     }
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-        self.external.mouse_wheel_event((x, y).into(), MouseWheel::RotateUp, false);
-        // TODO wait interface for wheel direction
+        let mouse_horizontal = if x < 0.0 {
+            MouseWheelHorizontal::RotateRight
+        } else if x > 0.0 {
+            MouseWheelHorizontal::RotateLeft
+        } else {
+            MouseWheelHorizontal::Nothing
+        };
+        let mouse_vertical = if y < 0.0 {
+            MouseWheelVertical::RotateDown
+        } else if y > 0.0 {
+            MouseWheelVertical::RotateUp
+        } else {
+            MouseWheelVertical::Nothing
+        };
+        self.external.mouse_wheel_event(self.last_mouse_pos.clone(), mouse_vertical, mouse_horizontal);
     }
 
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        self.last_mouse_pos = (x, y).into();
         self.external.mouse_button_event(button, ButtonState::Down, (x, y).into());
     }
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        self.last_mouse_pos = (x, y).into();
         self.external.mouse_button_event(button, ButtonState::Up, (x, y).into());
     }
 
@@ -214,7 +242,7 @@ mod shader {
     }"#;
 
     pub const META: ShaderMeta = ShaderMeta {
-        images: &[],
+        images: &["tex"],
         uniforms: UniformBlockLayout {
             uniforms: &[],
         },

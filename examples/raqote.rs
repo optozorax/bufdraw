@@ -4,14 +4,9 @@ use bufdraw::image::*;
 
 use raqote::*;
 
-use log::info;
-
 struct Window {
     image: DrawTarget,
     counter: u32,
-    cursor: Vec2i,
-    click: Vec2i,
-    wheel: Vec2i,
 }
 
 impl ImageTrait for Window {
@@ -33,9 +28,6 @@ impl Window {
         Window {
             image: DrawTarget::new(1920, 1080),
             counter: 0,
-            cursor: Vec2i::default(),
-            click: Vec2i::default(),
-            wheel: Vec2i::default(),
         }
     }
 }
@@ -117,44 +109,11 @@ impl MyEvents for Window {
     }
 
     fn resize_event(&mut self, new_size: Vec2i) {
-        //self.image.resize_lazy(&new_size);
         self.image = DrawTarget::new(new_size.x, new_size.y);
-    }
-
-    fn mouse_motion_event(&mut self, pos: Vec2i, _offset: Vec2i) {
-        self.cursor = pos;
-    }
-
-    fn mouse_button_event(&mut self, _button: MouseButton, _state: ButtonState, pos: Vec2i) {
-        self.click = pos;
-        info!("Mouse button clicked");
-    }
-
-    fn mouse_wheel_event(&mut self, pos: Vec2i, _dir: MouseWheel, _press: bool) {
-        self.wheel = pos;
     }
 }
 
 use rusttype::{point, Font, Scale};
-
-fn blend(up: &bufdraw::image::Color, low: &bufdraw::image::Color) -> bufdraw::image::Color {
-    let upr:i32 = up.r as i32;
-    let upg:i32 = up.g as i32;
-    let upb:i32 = up.b as i32;
-    let upa:i32 = up.a as i32;
-
-    let lowr:i32 = low.r as i32;
-    let lowg:i32 = low.g as i32;
-    let lowb:i32 = low.b as i32;
-    let lowa:i32 = low.a as i32;
-
-    bufdraw::image::Color::rgba(
-        (((upr - lowr) * upa + (lowr << 8)) >> 8) as u8,
-        (((upg - lowg) * upa + (lowg << 8)) >> 8) as u8,
-        (((upb - lowb) * upa + (lowb << 8)) >> 8) as u8,
-        ((upa + lowa) - ((lowa * upa + 255) >> 8)) as u8
-    )
-}
 
 // Modified https://github.com/redox-os/rusttype/blob/master/dev/examples/image.rs
 fn draw_text(image: &mut DrawTarget, text: &str, size: f32, pos: &Vec2i, color: &bufdraw::image::Color) {
@@ -173,20 +132,6 @@ fn draw_text(image: &mut DrawTarget, text: &str, size: f32, pos: &Vec2i, color: 
         .layout(text, scale, point(20.0, 20.0 + v_metrics.ascent))
         .collect();
 
-    // work out the layout size
-    let glyphs_height = (v_metrics.ascent - v_metrics.descent).ceil() as u32;
-    let glyphs_width = {
-        let min_x = glyphs
-            .first()
-            .map(|g| g.pixel_bounding_box().unwrap().min.x)
-            .unwrap();
-        let max_x = glyphs
-            .last()
-            .map(|g| g.pixel_bounding_box().unwrap().max.x)
-            .unwrap();
-        (max_x - min_x) as u32
-    };
-
     // Loop through the glyphs in the text, positing each one on a line
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
@@ -197,7 +142,7 @@ fn draw_text(image: &mut DrawTarget, text: &str, size: f32, pos: &Vec2i, color: 
                 let a = (v * (color.a as f32)) as u8;
                 let c = bufdraw::image::Color::rgba(color.b, color.g, color.r, a);
                 let pos = x as usize + y as usize * image.width() as usize;
-                if x >= 0 && (x as i32) < image.width() && y >= 0 && (y as i32) < image.height() {
+                if (x as i32) < image.width() && (y as i32) < image.height() {
                     if let Some(elem) = image.get_data_mut().get_mut(pos) {
                         //(A << 24) | (R << 16) | (G << 8) | B
                         let bytes: [u8; 4] = (*elem).to_be_bytes();

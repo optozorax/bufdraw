@@ -115,3 +115,23 @@ pub fn rect(mut image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
         }
     }
 }
+
+#[inline]
+pub fn blend(up: &Color, low: &Color) -> Color {
+    let upr:i32 = up.r as i32;
+    let upg:i32 = up.g as i32;
+    let upb:i32 = up.b as i32;
+    let upa:i32 = up.a as i32;
+
+    let lowr:i32 = low.r as i32;
+    let lowg:i32 = low.g as i32;
+    let lowb:i32 = low.b as i32;
+    let lowa:i32 = low.a as i32;
+
+    Color::rgba(
+        (((upr - lowr) * upa + (lowr << 8)) >> 8) as u8,
+        (((upg - lowg) * upa + (lowg << 8)) >> 8) as u8,
+        (((upb - lowb) * upa + (lowb << 8)) >> 8) as u8,
+        ((upa + lowa) - ((lowa * upa + 255) >> 8)) as u8
+    )
+}

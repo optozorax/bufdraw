@@ -61,13 +61,14 @@ impl MyEvents for Window {
         self.cursor = pos;
     }
 
-    fn mouse_button_event(&mut self, _button: MouseButton, _state: ButtonState, pos: Vec2i) {
+    fn mouse_button_event(&mut self, button: MouseButton, _state: ButtonState, pos: Vec2i) {
         self.click = pos;
-        info!("Mouse button clicked");
+        info!("Mouse button clicked: {:?}", button);
     }
 
-    fn mouse_wheel_event(&mut self, pos: Vec2i, _dir: MouseWheel, _press: bool) {
-        self.wheel = pos;
+    fn mouse_wheel_event(&mut self, pos: Vec2i, dir_vertical: MouseWheelVertical, dir_horizontal: MouseWheelHorizontal) {
+        self.wheel = pos.clone();
+        info!("Mouse wheel rotated: {:?}, {:?}, {:?}", pos, dir_vertical, dir_horizontal);
     }
 }
 
