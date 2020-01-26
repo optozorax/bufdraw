@@ -80,6 +80,10 @@ impl Vec2i {
     pub fn new(x: i32, y: i32) -> Vec2i {
         Vec2i { x, y }
     }
+
+    pub fn len(&self) -> f32 {
+        ((self.x.pow(2) + self.y.pow(2)) as f32).sqrt()
+    }
 }
 
 impl Default for Vec2i {

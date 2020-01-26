@@ -45,10 +45,19 @@ pub trait MyEvents {
     fn char_event(&mut self, _character: char, _keymods: KeyMods, _repeat: bool) {}
     fn key_event(&mut self, _keycode: KeyCode, _keymods: KeyMods, _state: ButtonState) {}
 
-    fn touch_start_event(&mut self, touches: Vec<Touch>) {}
-    fn touch_end_event(&mut self, touches: Vec<Touch>) {}
-    fn touch_cancel_event(&mut self, touches: Vec<Touch>) {}
-    fn touch_move_event(&mut self, touches: Vec<Touch>) {}
+
+    fn touch_one_start(&mut self, _pos: &Vec2i) {}
+    fn touch_one_move(&mut self, _pos: &Vec2i, _offset: &Vec2i) {}
+    fn touch_one_end(&mut self) {}
+
+    fn touch_scale_start(&mut self) {}
+    fn touch_scale_change(&mut self, scale: f32) {}
+    fn touch_scale_end(&mut self) {}
+
+    fn touch_start_event(&mut self, touches: &Vec<Touch>) {}
+    fn touch_end_event(&mut self, touches: &Vec<Touch>) {}
+    fn touch_cancel_event(&mut self, touches: &Vec<Touch>) {}
+    fn touch_move_event(&mut self, touches: &Vec<Touch>) {}
 }
 
 pub trait ImageTrait {
@@ -56,6 +65,8 @@ pub trait ImageTrait {
     fn get_width(&self) -> usize;
     fn get_height(&self) -> usize;
 }
+
+use std::collections::HashMap;
 
 struct MyWindow<T: MyEvents + ImageTrait> {
     external: T,
@@ -65,6 +76,12 @@ struct MyWindow<T: MyEvents + ImageTrait> {
     pipeline: Pipeline,
 
     last_mouse_pos: Vec2i,
+
+    current_touches: HashMap<u32, Vec2i>,
+    one_touch_regime: bool,
+    one_touch_pos: Vec2i,
+    two_touch_regime: bool,
+    scale_start: f32,
 }
 
 fn make_bindings<T: MyEvents + ImageTrait>(ctx: &mut Context, my_window: &mut MyWindow<T>) -> Bindings {
@@ -114,6 +131,11 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
             vertex_buffer,
             index_buffer,
             last_mouse_pos: Vec2i::default(),
+            current_touches: HashMap::new(),
+            one_touch_regime: false,
+            two_touch_regime: false,
+            one_touch_pos: Vec2i::default(),
+            scale_start: 0.0,
             pipeline: {
                 let shader = Shader::new(ctx, shader::VERTEX, shader::FRAGMENT, shader::META);
 
@@ -126,6 +148,80 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
                     ],
                     shader,
                 )
+            }
+        }
+    }
+}
+
+impl<T: MyEvents + ImageTrait> MyWindow<T> {
+    fn insert_touches(&mut self, touches: &Vec<Touch>) {
+        for touch in touches {
+            self.current_touches.insert(touch.id, (touch.x, touch.y).into());
+        }
+    }
+
+    fn remove_touches(&mut self, touches: &Vec<Touch>) {
+        for touch in touches {
+            self.current_touches.remove(&touch.id);
+        }
+    }
+
+    fn get_first_touch(&self) -> Option<&Vec2i> {
+        if let Some((_, pos)) = self.current_touches.iter().next() {
+            Some(pos)
+        } else {
+            None
+        }
+    }
+
+    fn get_first_two_touches(&self) -> Option<(&Vec2i, &Vec2i)> {
+        let mut iter = self.current_touches.iter();
+        if let Some((_, pos1)) = iter.next() {
+            if let Some((_, pos2)) = iter.next() {
+                Some((pos1, pos2))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn process_one_touch(&mut self) {
+        if self.current_touches.len() == 1 {
+            if self.one_touch_regime {
+                let new_pos = self.get_first_touch().unwrap().clone();
+                self.external.touch_one_move(&self.one_touch_pos, &(new_pos.clone() - &self.one_touch_pos));
+                self.one_touch_pos = new_pos;
+            } else {
+                self.one_touch_regime = true;
+                self.one_touch_pos = self.get_first_touch().unwrap().clone();
+                self.external.touch_one_start(&self.one_touch_pos);
+            }
+        } else {
+            if self.one_touch_regime {
+                self.one_touch_regime = false;
+                self.external.touch_one_end();
+            }
+        }
+    }
+
+    fn process_two_touches(&mut self) {
+        if self.current_touches.len() == 2 {
+            if self.two_touch_regime {
+                let (pos1, pos2) = self.get_first_two_touches().unwrap();
+                let current_scale = (pos1.clone() - pos2).len();
+                self.external.touch_scale_change(current_scale / self.scale_start);
+            } else {
+                self.two_touch_regime = true;
+                let (pos1, pos2) = self.get_first_two_touches().unwrap();
+                self.scale_start = (pos1.clone() - pos2).len();
+                self.external.touch_scale_start();
+            }
+        } else {
+            if self.two_touch_regime {
+                self.two_touch_regime = false;
+                self.external.touch_scale_end();
             }
         }
     }
@@ -207,19 +303,31 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
     }
 
     fn touch_start_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_start_event(touches);
+        self.external.touch_start_event(&touches);
+        self.insert_touches(&touches);
+        self.process_one_touch();
+        self.process_two_touches();
     }
 
     fn touch_end_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_end_event(touches);
+        self.external.touch_end_event(&touches);
+        self.remove_touches(&touches);
+        self.process_one_touch();
+        self.process_two_touches();
     }
 
     fn touch_cancel_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_cancel_event(touches);
+        self.external.touch_cancel_event(&touches);
+        self.remove_touches(&touches);
+        self.process_one_touch();
+        self.process_two_touches();
     }
 
     fn touch_move_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_move_event(touches);
+        self.external.touch_move_event(&touches);
+        self.insert_touches(&touches);
+        self.process_one_touch();
+        self.process_two_touches();
     }
 }
 
