@@ -10,7 +10,8 @@ Cross-platform window context and rendering library in buffer.
 """
 
 [dependencies]
-miniquad = "0.2.17"
+miniquad = { version = "0.2.19", git = "https://github.com/optozorax/miniquad" }
+# miniquad = { path = "../miniquad" }
 rusttype = "0.8"
 
 #[target.'cfg(not(target_arch = "wasm32"))'.dependencies]

@@ -7,6 +7,7 @@ pub mod text;
 pub mod measure;
 
 pub use miniquad::MouseButton;
+pub use miniquad::Touch;
 pub use miniquad::KeyCode;
 pub use miniquad::KeyMods;
 pub use miniquad::date::now;
@@ -43,6 +44,11 @@ pub trait MyEvents {
     fn mouse_button_event(&mut self, _button: MouseButton, _state: ButtonState, _pos: Vec2i) {}
     fn char_event(&mut self, _character: char, _keymods: KeyMods, _repeat: bool) {}
     fn key_event(&mut self, _keycode: KeyCode, _keymods: KeyMods, _state: ButtonState) {}
+
+    fn touch_start_event(&mut self, touches: Vec<Touch>) {}
+    fn touch_end_event(&mut self, touches: Vec<Touch>) {}
+    fn touch_cancel_event(&mut self, touches: Vec<Touch>) {}
+    fn touch_move_event(&mut self, touches: Vec<Touch>) {}
 }
 
 pub trait ImageTrait {
@@ -198,6 +204,22 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymods: KeyMods) {
         self.external.key_event(keycode, keymods, ButtonState::Up);
+    }
+
+    fn touch_start_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
+        self.external.touch_start_event(touches);
+    }
+
+    fn touch_end_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
+        self.external.touch_end_event(touches);
+    }
+
+    fn touch_cancel_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
+        self.external.touch_cancel_event(touches);
+    }
+
+    fn touch_move_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
+        self.external.touch_move_event(touches);
     }
 }
 
