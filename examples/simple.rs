@@ -16,6 +16,7 @@ struct Window {
     rect_size: i32,
 
     one_touch: Option<Vec2i>,
+    three_touch: Option<Vec2i>,
     rect_start: i32,
 }
 
@@ -47,6 +48,7 @@ impl Window {
             rect_size: 10,
 
             one_touch: None,
+            three_touch: None,
             rect_start: 0,
         }
     }
@@ -69,6 +71,10 @@ impl MyEvents for Window {
 
         if let Some(pos) = &self.one_touch {
             rect(&mut self.image, pos, &size, &Color::rgba(0, 255, 255, 255));
+        }
+
+        if let Some(pos) = &self.three_touch {
+            rect(&mut self.image, pos, &size, &Color::rgba(255, 0, 255, 255));
         }
 
         let max_lines: i32 = 50;
@@ -112,14 +118,24 @@ impl MyEvents for Window {
         self.one_touch = None;
     }
 
-    fn touch_scale_start(&mut self) {
+    fn touch_scale_start(&mut self, pos: &Vec2i) {
         self.rect_start = self.rect_size;
     }
-    fn touch_scale_change(&mut self, scale: f32) {
+    fn touch_scale_change(&mut self, scale: f32, pos: &Vec2i, _offset: &Vec2i) {
         self.rect_size = (self.rect_start as f32 * scale) as i32;
     }
     fn touch_scale_end(&mut self) {
         self.rect_start = self.rect_size;
+    }
+
+    fn touch_three_start(&mut self, pos: &Vec2i) {
+        self.three_touch = Some(pos.clone());
+    }
+    fn touch_three_move(&mut self, pos: &Vec2i, _offset: &Vec2i) {
+        self.three_touch = Some(pos.clone());
+    }
+    fn touch_three_end(&mut self) {
+        self.three_touch = None;
     }
 
     fn touch_start_event(&mut self, touches: &Vec<Touch>) {
