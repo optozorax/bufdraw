@@ -138,28 +138,8 @@ impl MyEvents for Window {
         self.three_touch = None;
     }
 
-    fn touch_start_event(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.text += format!("start id: {}, x: {:.1}, y: {:.1}\n", touch.id, touch.x, touch.y).as_str();
-        }
-    }
-
-    fn touch_end_event(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.text += format!("end id: {}, x: {:.1}, y: {:.1}\n", touch.id, touch.x, touch.y).as_str();
-        }
-    }
-
-    fn touch_cancel_event(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.text += format!("cancel id: {}, x: {:.1}, y: {:.1}\n", touch.id, touch.x, touch.y).as_str();
-        }
-    }
-
-    fn touch_move_event(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.text += format!("move id: {}, x: {:.1}, y: {:.1}\n", touch.id, touch.x, touch.y).as_str();
-        }
+    fn touch_event(&mut self, phase: TouchPhase, id: u64, pos: &Vec2i) {
+        self.text += format!("touch {:?} id: {}, x: {:.1}, y: {:.1}\n", phase, id, pos.x, pos.y).as_str();
     }
 }
 

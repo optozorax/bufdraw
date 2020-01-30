@@ -7,7 +7,7 @@ pub mod text;
 pub mod measure;
 
 pub use miniquad::MouseButton;
-pub use miniquad::Touch;
+pub use miniquad::TouchPhase;
 pub use miniquad::KeyCode;
 pub use miniquad::KeyMods;
 pub use miniquad::date::now;
@@ -58,10 +58,7 @@ pub trait MyEvents {
     fn touch_three_move(&mut self, _pos: &Vec2i, _offset: &Vec2i) {}
     fn touch_three_end(&mut self) {}
 
-    fn touch_start_event(&mut self, touches: &Vec<Touch>) {}
-    fn touch_end_event(&mut self, touches: &Vec<Touch>) {}
-    fn touch_cancel_event(&mut self, touches: &Vec<Touch>) {}
-    fn touch_move_event(&mut self, touches: &Vec<Touch>) {}
+    fn touch_event(&mut self, phase: TouchPhase, id: u64, pos: &Vec2i) {}
 }
 
 pub trait ImageTrait {
@@ -81,7 +78,7 @@ struct MyWindow<T: MyEvents + ImageTrait> {
 
     last_mouse_pos: Vec2i,
 
-    current_touches: HashMap<u32, Vec2i>,
+    current_touches: HashMap<u64, Vec2i>,
         one_touch_regime: bool,
         one_touch_pos: Vec2i,
 
@@ -166,18 +163,6 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 }
 
 impl<T: MyEvents + ImageTrait> MyWindow<T> {
-    fn insert_touches(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.current_touches.insert(touch.id, (touch.x, touch.y).into());
-        }
-    }
-
-    fn remove_touches(&mut self, touches: &Vec<Touch>) {
-        for touch in touches {
-            self.current_touches.remove(&touch.id);
-        }
-    }
-
     fn get_first_touch(&self) -> Option<&Vec2i> {
         if let Some((_, pos)) = self.current_touches.iter().next() {
             Some(pos)
@@ -353,33 +338,14 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
         self.external.key_event(keycode, keymods, ButtonState::Up);
     }
 
-    fn touch_start_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_start_event(&touches);
-        self.insert_touches(&touches);
-        self.process_one_touch();
-        self.process_two_touches();
-        self.process_three_touches();
-    }
-
-    fn touch_end_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_end_event(&touches);
-        self.remove_touches(&touches);
-        self.process_one_touch();
-        self.process_two_touches();
-        self.process_three_touches();
-    }
-
-    fn touch_cancel_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_cancel_event(&touches);
-        self.remove_touches(&touches);
-        self.process_one_touch();
-        self.process_two_touches();
-        self.process_three_touches();
-    }
-
-    fn touch_move_event(&mut self, ctx: &mut Context, touches: Vec<Touch>) {
-        self.external.touch_move_event(&touches);
-        self.insert_touches(&touches);
+    fn touch_event(&mut self, _ctx: &mut Context, phase: TouchPhase, id: u64, x: f32, y: f32) {
+        let pos: Vec2i = (x, y).into();
+        self.external.touch_event(phase, id, &pos);
+        use TouchPhase::*;
+        match phase {
+            Started | Moved   => { self.current_touches.insert(id, pos); },
+            Ended | Cancelled => { self.current_touches.remove(&id); },
+        }
         self.process_one_touch();
         self.process_two_touches();
         self.process_three_touches();
