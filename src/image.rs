@@ -15,7 +15,7 @@ pub struct Image {
 }
 
 impl ImageTrait for Image {
-    fn get_rgba8_buffer(&self) -> &[u8] { &self.buffer }
+    fn get_rgba8_buffer(&self) -> &[u8] { &self.buffer[0..(self.height * self.width *4)] }
     fn get_width(&self) -> usize { self.width }
     fn get_height(&self) -> usize { self.height }
 }
