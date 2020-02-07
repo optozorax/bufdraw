@@ -213,6 +213,11 @@ impl FpsByLastTime {
 		}
 	}
 
+	pub fn clear(&mut self) {
+		self.clock = Clock::now();
+		self.mas.clear();
+	}
+
 	pub fn fps(&self) -> f64 {
 		let now = self.clock.elapsed().seconds;
 		match self.mas.front() {
