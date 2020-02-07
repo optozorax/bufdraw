@@ -1,6 +1,6 @@
 [package]
 name = "bufdraw"
-version = "0.1.13"
+version = "0.1.14"
 authors = ["Ilya Sheprut <optozorax@gmail.com>"]
 edition = "2018"
 license = "MIT/Apache-2.0"

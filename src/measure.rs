@@ -195,3 +195,41 @@ impl FpsWithCounter {
 		self.counter.get_count()
 	}
 }
+
+use std::collections::VecDeque;
+
+pub struct FpsByLastTime {
+	mas: VecDeque<f64>,
+	clock: Clock,
+	last_time: f64, 
+}
+
+impl FpsByLastTime {
+	pub fn new(last_time: f64) -> Self {
+		FpsByLastTime {
+			mas: VecDeque::new(),
+			clock: Clock::now(),
+			last_time,
+		}
+	}
+
+	pub fn fps(&self) -> f64 {
+		let now = self.clock.elapsed().seconds;
+		match self.mas.front() {
+			Some(t) => self.mas.len() as f64 / (now - t),
+			None => 0.0,
+		}
+	}
+
+	pub fn frame(&mut self) {
+		let now = self.clock.elapsed().seconds;
+		self.mas.push_back(self.clock.elapsed().seconds);
+		while let Some(x) = self.mas.front() {
+			if now - x > self.last_time {
+				self.mas.pop_front();
+			} else {
+				break;
+			}
+		}
+	}
+}

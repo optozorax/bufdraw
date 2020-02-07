@@ -73,6 +73,16 @@ impl Color {
     }
 
     #[inline]
+    pub fn to_rgba_f64(&self) -> (f64, f64, f64, f64) {
+        (
+            self.r as f64 / 255.0,
+            self.g as f64 / 255.0,
+            self.b as f64 / 255.0,
+            self.a as f64 / 255.0,
+        )
+    }
+
+    #[inline]
     pub fn rgb(r: u8, g: u8, b: u8) -> Color {
         Color::rgba(r, g, b, 255)
     }
@@ -147,4 +157,42 @@ pub fn blend(up: &Color, low: &Color) -> Color {
         (((upb - lowb) * upa + (lowb << 8)) >> 8) as u8,
         ((upa + lowa) - ((lowa * upa + 255) >> 8)) as u8
     )
+}
+
+pub fn draw_repeated_rect(image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color, repeat_x: Option<u32>, repeat_y: Option<u32>) {
+    let range_x = calc_range_for_repeated_line(repeat_x, pos.x, size.x, image.get_width() as i32);
+    let range_y = calc_range_for_repeated_line(repeat_y, pos.y, size.y, image.get_height() as i32);
+
+    for y in range_y {
+        for x in range_x.clone() {
+            rect(image, &(Vec2i::new(
+                x * size.x * repeat_x.unwrap_or(1) as i32, 
+                y * size.y * repeat_y.unwrap_or(1) as i32
+            ) + pos), size, color);
+        }
+    }
+
+    fn calc_range_for_repeated_line(repeat: Option<u32>, pos: i32, len: i32, size: i32) -> std::ops::Range<i32> {
+        if let Some(repeat) = repeat {
+            let minus = {
+                let mut pos_offset = 0;
+                while pos + pos_offset * len * (repeat as i32) >= -len {
+                    pos_offset -= 1 ;
+                }
+                pos_offset
+            };
+
+            let plus = {
+                let mut pos_offset = 0;
+                while pos + pos_offset * len * (repeat as i32) < size {
+                    pos_offset += 1 ;
+                }
+                pos_offset
+            };
+
+            minus..plus
+        } else {
+            0i32..1i32
+        }
+    }
 }

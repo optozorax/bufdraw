@@ -113,3 +113,15 @@ impl From<(f32, f32)> for Vec2i {
         Vec2i::new(val.0 as i32, val.1 as i32)
     }
 }
+
+pub fn next_in_rect(pos: &Vec2i, size: &Vec2i) -> Option<Vec2i> {
+    if pos.x < size.x - 1 {
+        return Some(Vec2i::new(pos.x+1, pos.y))
+    }
+    
+    if pos.y < size.y - 1 {
+        Some(Vec2i::new(0, pos.y + 1))
+    } else {
+        None
+    }
+}

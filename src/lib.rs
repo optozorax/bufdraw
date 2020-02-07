@@ -5,6 +5,7 @@ pub mod image;
 pub mod vec;
 pub mod text;
 pub mod measure;
+pub mod interpolate;
 
 pub use miniquad::MouseButton;
 pub use miniquad::TouchPhase;
@@ -51,14 +52,14 @@ pub trait MyEvents {
     fn touch_one_end(&mut self) {}
 
     fn touch_scale_start(&mut self, _pos: &Vec2i) {}
-    fn touch_scale_change(&mut self, scale: f32, _pos: &Vec2i, _offset: &Vec2i) {}
+    fn touch_scale_change(&mut self, _scale: f32, _pos: &Vec2i, _offset: &Vec2i) {}
     fn touch_scale_end(&mut self) {}
 
     fn touch_three_start(&mut self, _pos: &Vec2i) {}
     fn touch_three_move(&mut self, _pos: &Vec2i, _offset: &Vec2i) {}
     fn touch_three_end(&mut self) {}
 
-    fn touch_event(&mut self, phase: TouchPhase, id: u64, pos: &Vec2i) {}
+    fn touch_event(&mut self, _phase: TouchPhase, _id: u64, _pos: &Vec2i) {}
 }
 
 pub trait ImageTrait {
