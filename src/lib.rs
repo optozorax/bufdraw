@@ -78,6 +78,8 @@ struct MyWindow<T: MyEvents + ImageTrait> {
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
 	pipeline: Pipeline,
+	texture: Option<Texture>,
+	bindings: Option<Bindings>,
 
 	last_mouse_pos: Vec2i,
 
@@ -91,23 +93,6 @@ struct MyWindow<T: MyEvents + ImageTrait> {
 
 		three_touch_regime: bool,
 		three_touch_pos: Vec2i,
-}
-
-fn make_bindings<T: MyEvents + ImageTrait>(ctx: &mut Context, my_window: &mut MyWindow<T>) -> Bindings {
-	let texture = Texture::from_rgba8(
-		ctx,
-		my_window.external.get_width() as u16, 
-		my_window.external.get_height() as u16, 
-		&my_window.external.get_rgba8_buffer()
-	);
-
-	let bindings = Bindings {
-		vertex_buffers: vec![my_window.vertex_buffer],
-		index_buffer: my_window.index_buffer,
-		images: vec![texture],
-	};
-
-	bindings
 }
 
 impl<T: MyEvents + ImageTrait> MyWindow<T> {
@@ -139,6 +124,8 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 			external,
 			vertex_buffer,
 			index_buffer,
+			texture: None,
+			bindings: None,
 			last_mouse_pos: Vec2i::default(),
 			current_touches: HashMap::new(),
 			one_touch_regime: false,
@@ -277,19 +264,36 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 
 		self.external.draw();
 
-		let bindings = make_bindings(ctx, self);
-		ctx.apply_bindings(&bindings);
+		if let Some(texture) = self.texture {
+			texture.update(ctx, self.external.get_rgba8_buffer());
+		} else {
+			self.texture = Some(Texture::from_rgba8(
+				ctx,
+				self.external.get_width() as u16, 
+				self.external.get_height() as u16, 
+				&self.external.get_rgba8_buffer()
+			));
+			self.bindings = Some(Bindings {
+				vertex_buffers: vec![self.vertex_buffer],
+				index_buffer: self.index_buffer,
+				images: vec![self.texture.unwrap()],
+			});
+		}
+
+		ctx.apply_bindings(self.bindings.as_ref().unwrap());
 
 		ctx.draw(0, 6, 1);
 		ctx.end_render_pass();
 
 		ctx.commit_frame();
-
-		bindings.images[0].delete();
 	}
 
 	fn resize_event(&mut self, _ctx: &mut Context, width: f32, height: f32) {
 		self.external.resize_event((width, height).into());
+		if let Some(bindings) = &self.bindings {
+			bindings.images[0].delete();
+		}
+		self.texture = None;
 	}
 
 	fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
