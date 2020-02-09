@@ -118,7 +118,7 @@ pub fn get_pixel(image: &Image, pos: &Vec2i) -> Color {
 pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
 	let mut offset = (pos.x + pos.y * image.width as i32) as usize;
 	offset *= 4;
-    assert!(offset + 3 < image.buffer.len());
+	assert!(offset + 3 < image.buffer.len());
 	image.buffer[offset + 0] = color.r;
 	image.buffer[offset + 1] = color.g;
 	image.buffer[offset + 2] = color.b;
@@ -128,6 +128,38 @@ pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
 #[inline]
 pub fn draw_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     set_pixel(image, &pos, &blend(&color, &get_pixel(image, &pos)));
+}
+
+fn pos_in_interval<'a, T>(min: T, pos: T, max: T) -> T where
+	T: 'a +  PartialOrd + Copy + std::ops::Sub<T, Output = T> + std::cmp::Ord
+{
+	min.max(max.min(pos))
+}
+
+pub fn place_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
+	let start_y = pos_in_interval(0, pos.y, dst.height as i32);
+	let end_y = pos_in_interval(0, pos.y + src.height as i32, dst.height as i32);
+	let start_x = pos_in_interval(0, pos.x, dst.width as i32);
+	let end_x = pos_in_interval(0, pos.x + src.width as i32, dst.width as i32);
+	for y in start_y..end_y {
+		for x in start_x..end_x {
+			let current = Vec2i::new(x, y);
+			set_pixel(dst, &current, &get_pixel(src, &(current.clone() - pos)));
+		}
+	}
+}
+
+pub fn draw_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
+	let start_y = 0.max((dst.height as i32).min(pos.y));
+	let end_y = 0.max((dst.height as i32).min(pos.y + src.height as i32));
+	let start_x = 0.max((dst.width as i32).min(pos.x));
+	let end_x = 0.max((dst.width as i32).min(pos.x + src.width as i32));
+	for y in start_y..end_y {
+		for x in start_x..end_x {
+			let current = Vec2i::new(x, y);
+			draw_pixel(dst, &current, &get_pixel(src, &(current.clone() - pos)));
+		}
+	}
 }
 
 #[inline]
@@ -146,11 +178,11 @@ pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Imag
 
 #[inline]
 pub fn draw_rect(mut image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
-    for y in pos.y.max(0)..(image.height as i32).min(size.y + pos.y) {
-        for x in pos.x.max(0)..(image.width as i32).min(size.x + pos.x) {
-            draw_pixel(&mut image, &Vec2i::new(x, y), color);   
-        }
-    }
+	for y in pos.y.max(0)..(image.height as i32).min(size.y + pos.y) {
+		for x in pos.x.max(0)..(image.width as i32).min(size.x + pos.x) {
+			draw_pixel(&mut image, &Vec2i::new(x, y), color);   
+		}
+	}
 }
 
 #[inline]
