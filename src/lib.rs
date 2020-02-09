@@ -371,6 +371,7 @@ pub fn start<T: 'static +  MyEvents + ImageTrait>(t: T) {
 
 	miniquad::start(conf::Conf::default(), |ctx| {
 		let mut result = MyWindow::new(ctx, t);
+		result.external.init();
 		let current_size = ctx.screen_size();
 		result.resize_event(ctx, current_size.0, current_size.1);
 		Box::new(result)

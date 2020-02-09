@@ -130,7 +130,8 @@ pub fn draw_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     set_pixel(image, &pos, &blend(&color, &get_pixel(image, &pos)));
 }
 
-fn pos_in_interval<'a, T>(min: T, pos: T, max: T) -> T where
+#[inline]
+pub fn pos_in_interval<'a, T>(min: T, pos: T, max: T) -> T where
 	T: 'a +  PartialOrd + Copy + std::ops::Sub<T, Output = T> + std::cmp::Ord
 {
 	min.max(max.min(pos))

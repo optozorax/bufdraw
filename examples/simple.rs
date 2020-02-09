@@ -11,7 +11,7 @@ struct Window {
 	cursor: Vec2i,
 	click: Vec2i,
 	wheel: Vec2i,
-	font: Font<'static>,
+	text_cache: TextCache,
 	text: String,
 	rect_size: i32,
 
@@ -43,7 +43,7 @@ impl Window {
 			cursor: Vec2i::default(),
 			click: Vec2i::default(),
 			wheel: Vec2i::default(),
-			font: Font::from_bytes(font_data as &[u8]).expect("Error constructing Font"),
+			text_cache: TextCache::new(Font::from_bytes(font_data as &[u8]).expect("Error constructing Font")),
 			text: String::from("nothing\n"),
 			rect_size: 10,
 
@@ -82,7 +82,7 @@ impl MyEvents for Window {
 		let len: i32 = text_arr.len() as i32;
 		let text_arr: Vec<String> = text_arr.iter().skip(0.max(len - max_lines) as usize).map(|&x| x.to_string()).collect();
 		self.text = text_arr.join("\n");
-		draw_text(&mut self.image, &self.font, self.text.as_str(), 20.0, &Vec2i::new(10, 10), &Color::rgba(0, 190, 190, 128));
+		draw_text(&mut self.image, &mut self.text_cache, self.text.as_str(), 20.0, &Vec2i::new(10, 10), &Color::rgba(0, 190, 190, 128));
 	}
 
 	fn resize_event(&mut self, new_size: Vec2i) {
