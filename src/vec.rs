@@ -1,12 +1,12 @@
 use std::ops;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Vec2i {
 	pub x: i32, 
 	pub y: i32
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Rect2i {
 	pub min: Vec2i,
 	pub max: Vec2i,
