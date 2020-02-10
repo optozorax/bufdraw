@@ -329,42 +329,23 @@ pub fn blend(src: &Color, dst: &Color) -> Color {
 	let srca = src.a as i32;
 	let dsta = dst.a as i32;
 
-	if dsta == 255 {
-		macro_rules! blend {
-			($src:expr, $dst:expr) => {
-				((($src as i32) * srca + ($dst as i32) * (255 - srca)) / srca) as u8
-			};
-		}
+	let outa = (srca + dsta) * 255 - srca * dsta; 
 
-		if srca == 0 {
-			Color::rgba(0, 0, 0, 0)
-		} else {
-			Color::rgba(
-				blend!(src.r, dst.r),
-				blend!(src.g, dst.g),
-				blend!(src.b, dst.b),
-				src.a,
-			)
-		}		
+	macro_rules! blend {
+		($src:expr, $dst:expr) => {
+			((255 * ($src as i32) * srca + ($dst as i32) * dsta * (255 - srca)) / outa) as u8
+		};
+	}
+
+	if outa == 0 {
+		Color::rgba(0, 0, 0, 0)
 	} else {
-		let outa = (srca + dsta) * 255 - srca * dsta; 
-
-		macro_rules! blend {
-			($src:expr, $dst:expr) => {
-				((255 * ($src as i32) * srca + ($dst as i32) * dsta * (255 - srca)) / outa) as u8
-			};
-		}
-
-		if outa == 0 {
-			Color::rgba(0, 0, 0, 0)
-		} else {
-			Color::rgba(
-				blend!(src.r, dst.r),
-				blend!(src.g, dst.g),
-				blend!(src.b, dst.b),
-				(outa / 255) as u8
-			)
-		}
+		Color::rgba(
+			blend!(src.r, dst.r),
+			blend!(src.g, dst.g),
+			blend!(src.b, dst.b),
+			(outa / 255) as u8
+		)
 	}
 }
 
