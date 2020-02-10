@@ -1,5 +1,7 @@
+use core::ops::Range;
 use crate::ImageTrait;
 use crate::vec::*;
+use crate::rangetools::*;
 
 pub enum PixelPos {
 	R,
@@ -70,13 +72,23 @@ impl Image {
 		}
 	}
 
-    #[inline]
-    pub fn get_rect(&self) -> Rect2i {
-        Rect2i {
-            min: Vec2i::default(),
-            max: Vec2i::new(self.width as i32, self.height as i32),
-        }
-    }
+	#[inline]
+	pub fn get_rect(&self) -> Rect2i {
+		Rect2i {
+			min: Vec2i::default(),
+			max: Vec2i::new(self.width as i32, self.height as i32),
+		}
+	}
+
+	#[inline]
+	pub fn range_x(&self) -> Range<i32> {
+		0..(self.width as i32)
+	}
+
+	#[inline]
+	pub fn range_y(&self) -> Range<i32> {
+		0..(self.height as i32)
+	}
 }
 
 impl Color {
@@ -129,26 +141,13 @@ impl Color {
 
 #[inline]
 pub fn get_pixel(image: &Image, pos: &Vec2i) -> Color {
-	let mut offset = (pos.x + pos.y * image.width as i32) as usize;
-	offset *= 4;
-	assert!(offset + 3 < image.buffer.len());
-	Color::rgba(
-		image.buffer[offset + 0],
-		image.buffer[offset + 1],
-		image.buffer[offset + 2],
-		image.buffer[offset + 3],
-	)
+	Color::from_u32(image.get_u32_buffer()[pos.x as usize + pos.y as usize * image.width])
 }
 
 #[inline]
 pub fn set_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
-	let mut offset = (pos.x + pos.y * image.width as i32) as usize;
-	offset *= 4;
-	assert!(offset + 3 < image.buffer.len());
-	image.buffer[offset + 0] = color.r;
-	image.buffer[offset + 1] = color.g;
-	image.buffer[offset + 2] = color.b;
-	image.buffer[offset + 3] = color.a;
+	let width = image.width;
+	image.get_u32_mut_buffer()[pos.x as usize + pos.y as usize * width] = color.to_u32();
 }
 
 #[inline]
@@ -156,45 +155,106 @@ pub fn draw_pixel(image: &mut Image, pos: &Vec2i, color: &Color) {
     set_pixel(image, &pos, &blend(&color, &get_pixel(image, &pos)));
 }
 
-#[inline]
-pub fn pos_in_interval<'a, T>(min: T, pos: T, max: T) -> T where
-	T: 'a +  PartialOrd + Copy + std::ops::Sub<T, Output = T> + std::cmp::Ord
-{
-	min.max(max.min(pos))
-}
-
 fn for_two_images<F: Fn(&mut u32, &u32)>(dst: &mut Image, src: &Image, pos: &Vec2i, f: F) {
-	let start_y_dst = pos_in_interval(0, pos.y, dst.height as i32) as usize;
-	let end_y_dst = pos_in_interval(0, pos.y + src.height as i32, dst.height as i32) as usize;
-	let start_x_dst = pos_in_interval(0, pos.x, dst.width as i32) as usize;
-	let end_x_dst = pos_in_interval(0, pos.x + src.width as i32, dst.width as i32) as usize;
+	let dst_y_range = intersect_range(
+		&dst.range_y(), 
+		&offset_range(&src.range_y(), pos.y)
+	);
 
-	let start_y_src = (start_y_dst as i32 - pos.y) as usize;
-	let end_y_src = (end_y_dst as i32 - pos.y) as usize;
-	let start_x_src = (start_x_dst as i32 - pos.x) as usize;
-	let end_x_src = (end_x_dst as i32 - pos.x) as usize;
+	let dst_x_range = intersect_range(
+		&dst.range_x(), 
+		&offset_range(&src.range_x(), pos.x)
+	);
 
-	let dst_width = dst.width;
-	let src_width = src.width;
+	if dst_x_range.end == dst_x_range.start {
+		return;
+	}
+
+	let src_y_range = offset_range(&dst_y_range, -pos.y);
+	let src_x_range = offset_range(&dst_x_range, -pos.x);
+
+	let dst_width = dst.width as i32;
+	let src_width = src.width as i32;
+
+	let mut dst_x_range = offset_range(&dst_x_range, dst_y_range.start * dst_width);
+	let mut src_x_range = offset_range(&src_x_range, src_y_range.start * src_width);
 
 	let dst_buf = dst.get_u32_mut_buffer();
 	let src_buf = src.get_u32_buffer();
 
-	for (y_dst, y_src) in (start_y_dst..end_y_dst).zip(start_y_src..end_y_src) {
-		let dst_offset = y_dst * dst_width;
-		let src_offset = y_src * src_width;
-
-		let dst_slice = &mut dst_buf[(dst_offset + start_x_dst)..(dst_offset + end_x_dst)];
-		let src_slice = &src_buf[(src_offset + start_x_src)..(src_offset + end_x_src)];
+	for _ in dst_y_range {
+		let dst_slice = &mut dst_buf[range_to_usize(&dst_x_range)];
+		let src_slice = &src_buf[range_to_usize(&src_x_range)];
 
 		for (pix_dst, pix_src) in dst_slice.iter_mut().zip(src_slice.iter()) {
 			f(pix_dst, pix_src);
 		}
+
+		dst_x_range = offset_range(&dst_x_range, dst_width);
+		src_x_range = offset_range(&src_x_range, src_width);
 	}
 }
 
 pub fn place_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
 	for_two_images(dst, src, pos, |pix_dst, pix_src| *pix_dst = *pix_src);
+}
+
+pub fn place_image_scaled(dst: &mut Image, src: &Image, pos: &Vec2i, scale: i32) {
+	let dst_y_range = intersect_range(
+		&dst.range_y(), 
+		&offset_range(&(0..(src.height as i32 * scale)), pos.y)
+	);
+
+	let dst_x_range = intersect_range(
+		&dst.range_x(), 
+		&offset_range(&(0..(src.width as i32 * scale)), pos.x)
+	);
+
+	if dst_x_range.end == dst_x_range.start {
+		return;
+	}
+
+	let src_y_range = offset_range(&dst_y_range, -pos.y);
+	let src_x_range = offset_range(&dst_x_range, -pos.x);
+	
+	let src_y_range_slice = div_range(&src_y_range, scale);
+	let src_x_range_slice = div_range(&src_x_range, scale);
+
+	let dst_width = dst.width as i32;
+	let src_width = src.width as i32;
+
+	let mut dst_pos_range = offset_range(&dst_x_range, dst_y_range.start * dst_width);
+	let mut src_pos_range = offset_range(&src_x_range_slice, src_y_range_slice.start * src_width);
+
+	let dst_buf = dst.get_u32_mut_buffer();
+	let src_buf = src.get_u32_buffer();
+
+	let mut current_y = src_y_range.start / scale;
+
+	for src_y in src_y_range {
+		let dst_slice = &mut dst_buf[range_to_usize(&dst_pos_range)];
+		let src_slice = &src_buf[range_to_usize(&src_pos_range)];
+		
+		let mut current_x = src_x_range_slice.start;
+
+		let mut src_iter = src_slice.iter();
+		let mut pix_src = src_iter.next().unwrap();
+		for (pix_dst, src_x) in dst_slice.iter_mut().zip(src_x_range.clone()) {
+			if src_x / scale != current_x {
+				pix_src = src_iter.next().unwrap();
+				current_x = src_x / scale;
+			}
+			*pix_dst = *pix_src;
+		}
+
+		dst_pos_range = offset_range(&dst_pos_range, dst_width);
+
+		if src_y / scale != current_y {
+			src_pos_range = offset_range(&src_pos_range, src_width);
+			current_y = src_y / scale;
+		}
+		
+	}
 }
 
 pub fn draw_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
@@ -218,62 +278,141 @@ pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Imag
 	}
 }
 
+fn for_image_and_rect<F: Fn(&mut u32)>(dst: &mut Image, rect_size: &Vec2i, pos: &Vec2i, f: F) {
+	let dst_y_range = intersect_range(
+		&dst.range_y(), 
+		&offset_range(&(0..rect_size.y), pos.y)
+	);
+
+	let dst_x_range = intersect_range(
+		&dst.range_x(), 
+		&offset_range(&(0..rect_size.x), pos.x)
+	);
+
+	if dst_x_range.end == dst_x_range.start {
+		return;
+	}
+
+	let dst_width = dst.width as i32;
+
+	let mut dst_x_range = offset_range(&dst_x_range, dst_y_range.start * dst_width);
+
+	let dst_buf = dst.get_u32_mut_buffer();
+
+	for _ in dst_y_range {
+		let dst_slice = &mut dst_buf[range_to_usize(&dst_x_range)];
+
+		for pix_dst in dst_slice.iter_mut() {
+			f(pix_dst);
+		}
+
+		dst_x_range = offset_range(&dst_x_range, dst_width);
+	}
+}
+
 #[inline]
-pub fn draw_rect(mut image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
-	for y in pos.y.max(0)..(image.height as i32).min(size.y + pos.y) {
-		for x in pos.x.max(0)..(image.width as i32).min(size.x + pos.x) {
-			draw_pixel(&mut image, &Vec2i::new(x, y), color);   
+pub fn draw_rect(image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
+	for_image_and_rect(image, size, pos, |pix| {
+		*pix = blend(&color, &Color::from_u32(*pix)).to_u32();
+	});
+}
+
+#[inline]
+pub fn rect(image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
+	let color = color.to_u32();
+	for_image_and_rect(image, size, pos, |pix| *pix = color);
+}
+
+#[inline]
+/// Fast blend on integer numbers without gamma correction and premultiplied alpha. Source: https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
+pub fn blend(src: &Color, dst: &Color) -> Color {
+	let srca = src.a as i32;
+	let dsta = dst.a as i32;
+
+	if dsta == 255 {
+		macro_rules! blend {
+			($src:expr, $dst:expr) => {
+				((($src as i32) * srca + ($dst as i32) * (255 - srca)) / srca) as u8
+			};
+		}
+
+		if srca == 0 {
+			Color::rgba(0, 0, 0, 0)
+		} else {
+			Color::rgba(
+				blend!(src.r, dst.r),
+				blend!(src.g, dst.g),
+				blend!(src.b, dst.b),
+				src.a,
+			)
+		}		
+	} else {
+		let outa = (srca + dsta) * 255 - srca * dsta; 
+
+		macro_rules! blend {
+			($src:expr, $dst:expr) => {
+				((255 * ($src as i32) * srca + ($dst as i32) * dsta * (255 - srca)) / outa) as u8
+			};
+		}
+
+		if outa == 0 {
+			Color::rgba(0, 0, 0, 0)
+		} else {
+			Color::rgba(
+				blend!(src.r, dst.r),
+				blend!(src.g, dst.g),
+				blend!(src.b, dst.b),
+				(outa / 255) as u8
+			)
 		}
 	}
 }
 
 #[inline]
-pub fn rect(mut image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color) {
-	for y in pos.y.max(0)..(image.height as i32).min(size.y + pos.y) {
-		for x in pos.x.max(0)..(image.width as i32).min(size.x + pos.x) {
-			set_pixel(&mut image, &Vec2i::new(x, y), color);   
-		}
+/// Works on f32 with gamma correction of 2.2 power. Source: https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending + https://en.wikipedia.org/wiki/Alpha_compositing#Composing_alpha_blending_with_gamma_correction
+pub fn ideal_blend(src: &Color, dst: &Color) -> Color {
+	let srca = src.a as f32 / 255.0;
+	let dsta = dst.a as f32 / 255.0;
+
+	let outa = 1. - (1. - srca) * (1. - dsta);
+
+	macro_rules! blend {
+		($src:expr, $dst:expr) => {
+			(((($src as f32 / 255.0).powf(2.2) * srca + ($dst as f32 / 255.0).powf(2.2) * dsta * (1.0 - srca)) / outa).powf(1. / 2.2) * 255.0) as u8
+		};
+	}
+
+	if outa == 0.0 {
+		Color::rgba(0, 0, 0, 0)
+	} else {
+		Color::rgba(
+			blend!(src.r, dst.r),
+			blend!(src.g, dst.g),
+			blend!(src.b, dst.b),
+			(outa * 255.0) as u8
+		)
 	}
 }
 
-#[inline]
-pub fn blend(up: &Color, low: &Color) -> Color {
-	let upr:i32 = up.r as i32;
-	let upg:i32 = up.g as i32;
-	let upb:i32 = up.b as i32;
-	let upa:i32 = up.a as i32;
-
-	let lowr:i32 = low.r as i32;
-	let lowg:i32 = low.g as i32;
-	let lowb:i32 = low.b as i32;
-	let lowa:i32 = low.a as i32;
-
-	Color::rgba(
-		(((upr - lowr) * upa + (lowr << 8)) >> 8) as u8,
-		(((upg - lowg) * upa + (lowg << 8)) >> 8) as u8,
-		(((upb - lowb) * upa + (lowb << 8)) >> 8) as u8,
-		((upa + lowa) - ((lowa * upa + 255) >> 8)) as u8
-	)
-}
-
-pub fn draw_repeated_rect(image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &Color, repeat_x: Option<u32>, repeat_y: Option<u32>) {
+pub fn place_repeated_scaled_image(image: &mut Image, repeated_image: &Image, pos: &Vec2i, scale: i32,  repeat_x: bool, repeat_y: bool) {
+	let size = Vec2i::new(repeated_image.get_width() as i32, repeated_image.get_height() as i32) * scale;
 	let range_x = calc_range_for_repeated_line(repeat_x, pos.x, size.x, image.get_width() as i32);
 	let range_y = calc_range_for_repeated_line(repeat_y, pos.y, size.y, image.get_height() as i32);
 
 	for y in range_y {
 		for x in range_x.clone() {
-			rect(image, &(Vec2i::new(
-				x * size.x * repeat_x.unwrap_or(1) as i32, 
-				y * size.y * repeat_y.unwrap_or(1) as i32
-			) + pos), size, color);
+			place_image_scaled(image, repeated_image, &(Vec2i::new(
+				x * size.x,
+				y * size.y
+			) + pos), scale);
 		}
 	}
 
-	fn calc_range_for_repeated_line(repeat: Option<u32>, pos: i32, len: i32, size: i32) -> std::ops::Range<i32> {
-		if let Some(repeat) = repeat {
+	fn calc_range_for_repeated_line(repeat: bool, pos: i32, len: i32, size: i32) -> std::ops::Range<i32> {
+		if repeat {
 			let minus = {
 				let mut pos_offset = 0;
-				while pos + pos_offset * len * (repeat as i32) >= -len {
+				while pos + pos_offset * len >= -len {
 					pos_offset -= 1 ;
 				}
 				pos_offset
@@ -281,7 +420,7 @@ pub fn draw_repeated_rect(image: &mut Image, pos: &Vec2i, size: &Vec2i, color: &
 
 			let plus = {
 				let mut pos_offset = 0;
-				while pos + pos_offset * len * (repeat as i32) < size {
+				while pos + pos_offset * len < size {
 					pos_offset += 1 ;
 				}
 				pos_offset

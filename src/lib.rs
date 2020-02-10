@@ -8,6 +8,7 @@ pub mod measure;
 pub mod interpolate;
 pub mod minmax;
 pub mod parameters;
+pub mod rangetools;
 
 pub use miniquad::MouseButton;
 pub use miniquad::TouchPhase;
