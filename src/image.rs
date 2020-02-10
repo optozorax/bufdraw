@@ -29,6 +29,18 @@ pub struct Color {
 }
 
 impl Image {
+	pub fn get_u32_buffer(&self) -> &[u32] {
+		let len = self.height * self.width;
+		let buffer = &self.buffer[0..(len * 4)];
+		unsafe { std::slice::from_raw_parts(buffer.as_ptr() as *const u32, len) }
+	}
+
+	pub fn get_u32_mut_buffer(&mut self) -> &mut [u32] {
+		let len = self.height * self.width;
+		let buffer = &mut self.buffer[0..(len * 4)];
+		unsafe { std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u32, len) }
+	}
+
 	pub fn new(size: &Vec2i) -> Image {
 		let width = size.x as usize;
 		let height = size.y as usize;
@@ -52,7 +64,10 @@ impl Image {
 
 	#[inline]
 	pub fn clear(&mut self, color: &Color) {
-		function_for_all_pixels(self, |_, _| color.clone());
+		let color = color.to_u32();
+		for pix in self.get_u32_mut_buffer() {
+			*pix = color;
+		}
 	}
 
     #[inline]
@@ -99,6 +114,17 @@ impl Color {
 	pub fn gray(rgb: u8) -> Color {
 		Color::rgb(rgb, rgb, rgb)
 	}
+
+	#[inline]
+	pub fn from_u32(v: u32) -> Self {
+		let res = u32::to_le_bytes(v);
+		Color::rgba(res[0], res[1], res[2], res[3])
+	} 	
+
+	#[inline]
+	pub fn to_u32(&self) -> u32 {
+		u32::from_le_bytes([self.r, self.g, self.b, self.a])
+	}
 }
 
 #[inline]
@@ -137,42 +163,57 @@ pub fn pos_in_interval<'a, T>(min: T, pos: T, max: T) -> T where
 	min.max(max.min(pos))
 }
 
-pub fn place_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
-	let start_y = pos_in_interval(0, pos.y, dst.height as i32);
-	let end_y = pos_in_interval(0, pos.y + src.height as i32, dst.height as i32);
-	let start_x = pos_in_interval(0, pos.x, dst.width as i32);
-	let end_x = pos_in_interval(0, pos.x + src.width as i32, dst.width as i32);
-	for y in start_y..end_y {
-		for x in start_x..end_x {
-			let current = Vec2i::new(x, y);
-			set_pixel(dst, &current, &get_pixel(src, &(current.clone() - pos)));
+fn for_two_images<F: Fn(&mut u32, &u32)>(dst: &mut Image, src: &Image, pos: &Vec2i, f: F) {
+	let start_y_dst = pos_in_interval(0, pos.y, dst.height as i32) as usize;
+	let end_y_dst = pos_in_interval(0, pos.y + src.height as i32, dst.height as i32) as usize;
+	let start_x_dst = pos_in_interval(0, pos.x, dst.width as i32) as usize;
+	let end_x_dst = pos_in_interval(0, pos.x + src.width as i32, dst.width as i32) as usize;
+
+	let start_y_src = (start_y_dst as i32 - pos.y) as usize;
+	let end_y_src = (end_y_dst as i32 - pos.y) as usize;
+	let start_x_src = (start_x_dst as i32 - pos.x) as usize;
+	let end_x_src = (end_x_dst as i32 - pos.x) as usize;
+
+	let dst_width = dst.width;
+	let src_width = src.width;
+
+	let dst_buf = dst.get_u32_mut_buffer();
+	let src_buf = src.get_u32_buffer();
+
+	for (y_dst, y_src) in (start_y_dst..end_y_dst).zip(start_y_src..end_y_src) {
+		let dst_offset = y_dst * dst_width;
+		let src_offset = y_src * src_width;
+
+		let dst_slice = &mut dst_buf[(dst_offset + start_x_dst)..(dst_offset + end_x_dst)];
+		let src_slice = &src_buf[(src_offset + start_x_src)..(src_offset + end_x_src)];
+
+		for (pix_dst, pix_src) in dst_slice.iter_mut().zip(src_slice.iter()) {
+			f(pix_dst, pix_src);
 		}
 	}
 }
 
+pub fn place_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
+	for_two_images(dst, src, pos, |pix_dst, pix_src| *pix_dst = *pix_src);
+}
+
 pub fn draw_image(dst: &mut Image, src: &Image, pos: &Vec2i) {
-	let start_y = 0.max((dst.height as i32).min(pos.y));
-	let end_y = 0.max((dst.height as i32).min(pos.y + src.height as i32));
-	let start_x = 0.max((dst.width as i32).min(pos.x));
-	let end_x = 0.max((dst.width as i32).min(pos.x + src.width as i32));
-	for y in start_y..end_y {
-		for x in start_x..end_x {
-			let current = Vec2i::new(x, y);
-			draw_pixel(dst, &current, &get_pixel(src, &(current.clone() - pos)));
-		}
-	}
+	for_two_images(dst, src, pos, |pix_dst, pix_src| {
+		*pix_dst = blend(&Color::from_u32(*pix_src), &Color::from_u32(*pix_dst)).to_u32();
+	});
 }
 
 #[inline]
 pub fn function_for_all_pixels<F: FnMut(usize, usize) -> Color>(image: &mut Image, mut f: F) {
-	let mut iter = image.buffer.iter_mut();
-	for y in 0..image.height {
-		for x in 0..image.width {
+	let height = image.height;
+	let width = image.width;
+	let mut iter = image.get_u32_mut_buffer().iter_mut();
+	for y in 0..height {
+		for x in 0..width {
 			let color = f(x, y);
-			if let Some(r) = iter.next() { *r = color.r; }
-			if let Some(g) = iter.next() { *g = color.g; }
-			if let Some(b) = iter.next() { *b = color.b; }
-			if let Some(a) = iter.next() { *a = color.a; }
+			if let Some(c) = iter.next() {
+				*c = color.to_u32();
+			}
 		}
 	}
 }

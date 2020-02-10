@@ -68,7 +68,7 @@ impl TextCache {
 							color.r, 
 							color.g, 
 							color.b, 
-							(color.a as f32 * glyph_image.image[glyph_pos] as f32 / 255.0) as u8
+							((color.a as i32 * glyph_image.image[glyph_pos] as i32) >> 8) as u8
 						));
 					}
 				}
