@@ -167,6 +167,7 @@ pub fn text_size(
 ) -> Vec2i {
 	let font = &cache.font;
 	let mut bounding_box_finder = BoundingBoxFinder::default();
+	bounding_box_finder.process(&Vec2i::default());
 
 	let mut y_offset = 0.0;
 	for line in text.split('\n') {
