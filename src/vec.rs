@@ -123,6 +123,10 @@ impl Vec2i {
 	pub fn len(&self) -> f32 {
 		((self.x.pow(2) + self.y.pow(2)) as f32).sqrt()
 	}
+
+	pub fn is_empty(&self) -> bool {
+		self.x == 0 && self.y == 0
+	}
 }
 
 impl Default for Vec2i {

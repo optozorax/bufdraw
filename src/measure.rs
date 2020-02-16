@@ -99,14 +99,6 @@ impl AverageTimer {
 	}
 
 	#[inline]
-	pub fn time_avg_weighted<F: FnOnce(Clock) -> ()>(&mut self, f: F, weight: f64) -> AverageDuration {
-		self.total_duration += time(f).seconds;
-		self.counter += 1;
-		self.weight += weight;
-		self.get_current()
-	}
-
-	#[inline]
 	pub fn get_current(&self) -> AverageDuration {
 		AverageDuration { 
 			avg_duration: Duration::from_seconds(
@@ -162,9 +154,10 @@ impl FpsWithCounter {
 	#[inline]
 	pub fn action<F: FnMut(Clock) -> ()>(&mut self, f: F) -> Option<Duration> {
 		let mut duration = Duration::from_seconds(0.0);
-		if self.counter.action(|| {
+		let is_trigger = self.counter.action(|| {
 			duration = time(f)
-		}) {
+		});
+		if is_trigger {
 			Some(duration)
 		} else {
 			None
@@ -175,10 +168,11 @@ impl FpsWithCounter {
 	pub fn action_avg<F: FnMut(Clock) -> ()>(&mut self, f: F) -> Option<Duration> {
 		let mut duration = Duration::from_seconds(0.0);
 		let timer = &mut self.timer;
-		if self.counter.action(|| {
+		let is_trigger = self.counter.action(|| {
 			let res = timer.time_avg(f);
 			duration = res.avg_duration;
-		}) {
+		});
+		if is_trigger {
 			Some(duration)
 		} else {
 			None

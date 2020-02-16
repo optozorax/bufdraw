@@ -141,7 +141,7 @@ pub fn draw_text(
 	pos: &Vec2i, 
 	color: &Color
 ) {
-	if size != cache.size {
+	if (size - cache.size).abs() > 0.001 {
 		cache.clear(size);
 	}
 
@@ -188,5 +188,5 @@ pub fn text_size(
 		y_offset += v_metrics.ascent - v_metrics.descent + v_metrics.line_gap;
 	}
 
-	return bounding_box_finder.size().unwrap_or(Vec2i::default());
+	bounding_box_finder.size().unwrap_or_default()
 }

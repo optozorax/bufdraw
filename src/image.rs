@@ -34,13 +34,23 @@ impl Image {
 	pub fn get_u32_buffer(&self) -> &[u32] {
 		let len = self.height * self.width;
 		let buffer = &self.buffer[0..(len * 4)];
-		unsafe { std::slice::from_raw_parts(buffer.as_ptr() as *const u32, len) }
+		unsafe {
+			let (prefix, shorts, suffix) = buffer.align_to();
+			assert!(prefix.is_empty());
+			assert!(suffix.is_empty());
+			shorts
+		}
 	}
 
 	pub fn get_u32_mut_buffer(&mut self) -> &mut [u32] {
 		let len = self.height * self.width;
 		let buffer = &mut self.buffer[0..(len * 4)];
-		unsafe { std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u32, len) }
+		unsafe {
+			let (prefix, shorts, suffix) = buffer.align_to_mut();
+			assert!(prefix.is_empty());
+			assert!(suffix.is_empty());
+			shorts
+		}
 	}
 
 	pub fn new(size: &Vec2i) -> Image {

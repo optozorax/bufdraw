@@ -203,11 +203,9 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 				self.one_touch_regime = true;
 				self.external.touch_one_start(&self.one_touch_pos);
 			}
-		} else {
-			if self.one_touch_regime {
-				self.one_touch_regime = false;
-				self.external.touch_one_end();
-			}
+		} else if self.one_touch_regime {
+			self.one_touch_regime = false;
+			self.external.touch_one_end();
 		}
 	}
 
@@ -225,11 +223,9 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 				self.two_touch_pos = center;
 				self.external.touch_scale_start(&self.two_touch_pos);
 			}
-		} else {
-			if self.two_touch_regime {
-				self.two_touch_regime = false;
-				self.external.touch_scale_end();
-			}
+		} else if self.two_touch_regime {
+			self.two_touch_regime = false;
+			self.external.touch_scale_end();
 		}
 	}
 
@@ -245,11 +241,9 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 				self.three_touch_pos = center;
 				self.external.touch_three_start(&self.three_touch_pos);
 			}
-		} else {
-			if self.three_touch_regime {
-				self.three_touch_regime = false;
-				self.external.touch_three_end();
-			}
+		} else if self.three_touch_regime {
+			self.three_touch_regime = false;
+			self.external.touch_three_end();
 		}
 	}
 }
@@ -303,19 +297,16 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 	}
 
 	fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-		let mouse_horizontal = if x < 0.0 {
-			MouseWheelHorizontal::RotateRight
-		} else if x > 0.0 {
-			MouseWheelHorizontal::RotateLeft
-		} else {
-			MouseWheelHorizontal::Nothing
+		use std::cmp::Ordering::*;
+		let mouse_horizontal = match x.partial_cmp(&0.0).unwrap_or(Equal) {
+			Less => MouseWheelHorizontal::RotateRight,
+			Equal => MouseWheelHorizontal::Nothing,
+			Greater => MouseWheelHorizontal::RotateLeft,
 		};
-		let mouse_vertical = if y < 0.0 {
-			MouseWheelVertical::RotateDown
-		} else if y > 0.0 {
-			MouseWheelVertical::RotateUp
-		} else {
-			MouseWheelVertical::Nothing
+		let mouse_vertical = match y.partial_cmp(&0.0).unwrap_or(Equal) {
+			Less => MouseWheelVertical::RotateDown,
+			Equal => MouseWheelVertical::Nothing,
+			Greater => MouseWheelVertical::RotateUp,
 		};
 		self.external.mouse_wheel_event(self.last_mouse_pos.clone(), mouse_vertical, mouse_horizontal);
 	}

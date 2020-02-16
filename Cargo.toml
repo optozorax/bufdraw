@@ -10,7 +10,7 @@ Cross-platform window context and rendering library in buffer.
 """
 
 [dependencies]
-miniquad = "0.2.21"
+miniquad = { rev = "360a523", git = "https://github.com/not-fl3/miniquad" }
 rusttype = "0.8"
 lazy_static = "1.0"
 

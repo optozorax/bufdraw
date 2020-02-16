@@ -9,6 +9,7 @@ pub enum Param {
 	},
 }
 
+#[allow(dead_code)]
 extern "C" {
 	fn param_count() -> i32;
 	fn param_key_length(key_pos: i32) -> i32;
