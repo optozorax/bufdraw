@@ -12,6 +12,8 @@ if (gl === null) {
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
 }
 
+canvas.focus();
+
 function assert(flag, message) {
     if (flag == false) {
         alert(message)
@@ -78,6 +80,11 @@ function UTF8ToString(ptr, len) {
     }
     return string;
 }
+
+var FS = {
+    loaded_files: [],
+    unique_id: 0
+};
 
 var GL = {
     counter: 1,
@@ -344,7 +351,7 @@ into_sapp_keycode = function (key_code) {
 }
 
 var emscripten_shaders_hack = false;
-var start;
+
 var importObject = {
     env: {
         console_debug: function (ptr) {
@@ -369,7 +376,7 @@ var importObject = {
             return Math.floor(Math.random() * 2147483647);
         },
         time: function () {
-            return (Date.now() - start) / 1000.0;
+            return Date.now() / 1000.0;
         },
         canvas_width: function () {
             return Math.floor(canvas.clientWidth);
@@ -713,7 +720,6 @@ var importObject = {
             }
         },
         init_opengl: function (ptr) {
-            start = Date.now();
             canvas.onmousemove = function (event) {
                 var x = event.clientX;
                 var y = event.clientY;
@@ -778,6 +784,48 @@ var importObject = {
                 resize(canvas, wasm_exports.resize);
             };
             window.requestAnimationFrame(animation);
+        },
+
+        fs_load_file: function (ptr, len) {
+            var url = UTF8ToString(ptr, len);
+            var file_id = FS.unique_id;
+            FS.unique_id += 1;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'arraybuffer';
+            xhr.onload = function (e) {
+                if (this.status == 200) {
+                    var uInt8Array = new Uint8Array(this.response);
+
+                    FS.loaded_files[file_id] = uInt8Array;
+                    wasm_exports.file_loaded(file_id);
+                }
+            }
+            xhr.onerror = function (e) {
+                FS.loaded_files[file_id] = null;
+                wasm_exports.file_loaded(file_id);
+            };
+
+            xhr.send();
+
+            return file_id;
+        },
+
+        fs_get_buffer_size: function (file_id) {
+            if (FS.loaded_files[file_id] == null) {
+                return -1;
+            } else {
+                return FS.loaded_files[file_id].length;
+            }
+        },
+        fs_take_buffer: function (file_id, ptr, max_length) {
+            var file = FS.loaded_files[file_id];
+            console.assert(file.length <= max_length);
+            var dest = new Uint8Array(memory.buffer, ptr, max_length);
+            for (var i = 0; i < file.length; i++) {
+                dest[i] = file[i];
+            }
+            delete FS.loaded_files[file_id];
         }
     }
 };
@@ -788,16 +836,16 @@ function init_plugins(plugins) {
         return;
 
     for (var i = 0; i < plugins.length; i++) {
-        plugins[i].init(importObject);
+        plugins[i].register_plugin(importObject);
     }
 }
 
-function set_mem_plugins(plugins) {
+function expose_wasm(plugins) {
     if (plugins == undefined)
         return;
 
     for (var i = 0; i < plugins.length; i++) {
-        plugins[i].set_mem(memory);
+        plugins[i].set_wasm_refs(memory, wasm_exports);
     }
 }
 
@@ -813,7 +861,7 @@ function load(wasm_path, plugins) {
                 memory = obj.instance.exports.memory;
                 wasm_exports = obj.instance.exports;
 
-                set_mem_plugins(plugins);
+                expose_wasm(plugins);
                 obj.instance.exports.main();
             });
     } else {
@@ -824,7 +872,7 @@ function load(wasm_path, plugins) {
                 memory = obj.instance.exports.memory;
                 wasm_exports = obj.instance.exports;
 
-                set_mem_plugins(plugins);
+                expose_wasm(plugins);
                 obj.instance.exports.main();
             });
     }
