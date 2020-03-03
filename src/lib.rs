@@ -7,7 +7,6 @@ pub mod text;
 pub mod measure;
 pub mod interpolate;
 pub mod minmax;
-pub mod parameters;
 pub mod rangetools;
 
 pub use miniquad::MouseButton;
@@ -16,6 +15,8 @@ pub use miniquad::KeyCode;
 pub use miniquad::KeyMods;
 pub use miniquad::date::now;
 pub use rusttype::Font;
+
+pub use miniquad_parameters::PROGRAM_PARAMETERS;
 
 pub enum ButtonState {
 	Down,
@@ -291,9 +292,10 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 		self.texture = None;
 	}
 
-	fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32, dx: f32, dy: f32) {
-		self.last_mouse_pos = (x, y).into();
-		self.external.mouse_motion_event((x, y).into(), (dx, dy).into());
+	fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
+		let current: Vec2i = (x, y).into();
+		self.last_mouse_pos = current.clone();
+		self.external.mouse_motion_event(current.clone(), current - &self.last_mouse_pos);
 	}
 
 	fn mouse_wheel_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
@@ -361,12 +363,12 @@ pub fn start<T: 'static +  MyEvents + ImageTrait>(t: T) {
 		env_logger::init();
 	}
 
-	miniquad::start(conf::Conf::default(), |ctx| {
-		let mut result = MyWindow::new(ctx, t);
+	miniquad::start(conf::Conf::default(), |mut ctx| {
+		let mut result = MyWindow::new(&mut ctx, t);
 		result.external.init();
 		let current_size = ctx.screen_size();
-		result.resize_event(ctx, current_size.0, current_size.1);
-		Box::new(result)
+		result.resize_event(&mut ctx, current_size.0, current_size.1);
+		miniquad::UserData::Owning((Box::new(result), ctx))
 	});
 }
 
