@@ -3,6 +3,18 @@ use bufdraw::vec::*;
 use bufdraw::image::*;
 use bufdraw::text::*;
 
+use gesture_recognizer::*;
+
+trait IntoMy {
+	fn into_my(&self) -> Vec2i;
+}
+
+impl IntoMy for Point {
+	fn into_my(&self) -> Vec2i {
+		Vec2i { x: self.x as i32, y: self.y as i32 }
+	}
+}
+
 struct Window {
 	window: WindowBase,
 	gesture_recognizer: GestureRecognizer,
@@ -137,36 +149,36 @@ impl MyEvents for Window {
 
 	fn touch_event(&mut self, phase: TouchPhase, id: u64, pos: &Vec2i) {
 		self.window.text += format!("touch {:?} id: {}, x: {:.1}, y: {:.1}\n", phase, id, pos.x, pos.y).as_str();
-		self.gesture_recognizer.process(&mut self.window, phase, id, pos.x as f32, pos.y as f32);
+		self.gesture_recognizer.process(&mut self.window, phase.into(), id, pos.x as f32, pos.y as f32);
 	}
 }
 
 impl GestureEvents for WindowBase {
-	fn touch_one_start(&mut self, pos: &Vec2i) {
-		self.one_touch = Some(pos.clone());
+	fn touch_one_start(&mut self, pos: &Point) {
+		self.one_touch = Some(pos.into_my());
 	}
-	fn touch_one_move(&mut self, pos: &Vec2i, _offset: &Vec2i) {
-		self.one_touch = Some(pos.clone());
+	fn touch_one_move(&mut self, pos: &Point, _offset: &Point) {
+		self.one_touch = Some(pos.into_my());
 	}
 	fn touch_one_end(&mut self) {
 		self.one_touch = None;
 	}
 
-	fn touch_scale_start(&mut self, _pos: &Vec2i) {
+	fn touch_scale_start(&mut self, _pos: &Point) {
 		self.rect_start = self.rect_size;
 	}
-	fn touch_scale_change(&mut self, scale: f32, _pos: &Vec2i, _offset: &Vec2i) {
+	fn touch_scale_change(&mut self, scale: f32, _pos: &Point, _offset: &Point) {
 		self.rect_size = (self.rect_start as f32 * scale) as i32;
 	}
 	fn touch_scale_end(&mut self) {
 		self.rect_start = self.rect_size;
 	}
 
-	fn touch_three_start(&mut self, pos: &Vec2i) {
-		self.three_touch = Some(pos.clone());
+	fn touch_three_start(&mut self, pos: &Point) {
+		self.three_touch = Some(pos.into_my());
 	}
-	fn touch_three_move(&mut self, pos: &Vec2i, _offset: &Vec2i) {
-		self.three_touch = Some(pos.clone());
+	fn touch_three_move(&mut self, pos: &Point, _offset: &Point) {
+		self.three_touch = Some(pos.into_my());
 	}
 	fn touch_three_end(&mut self) {
 		self.three_touch = None;
