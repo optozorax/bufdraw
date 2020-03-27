@@ -3,12 +3,20 @@ use crate::ImageTrait;
 use crate::vec::*;
 use crate::rangetools::*;
 use std::path::Path;
+use static_assertions::*;
 
 pub enum PixelPos {
 	R,
 	G,
 	B,
 	A,
+}
+
+
+pub fn convert(slice: &mut [Color]) -> &mut [u32] {
+	assert_eq_size!(Color, u32);
+	assert_eq_align!(Color, u32);
+	unsafe { std::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut u32, slice.len()) }
 }
 
 #[derive(Clone)]
@@ -25,6 +33,7 @@ impl ImageTrait for Image {
 }
 
 #[derive(Clone, Debug)]
+#[repr(C, align(4))]
 pub struct Color {
 	pub r: u8,
 	pub g: u8,

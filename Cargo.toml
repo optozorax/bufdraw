@@ -15,6 +15,7 @@ rusttype = "0.8"
 lazy_static = "1.0"
 miniquad-parameters = { git = "https://github.com/optozorax/miniquad-parameters", version = "0.1.1" }
 png = "0.16.0"
+static_assertions = "1.1.0"
 
 #[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.7.1"
