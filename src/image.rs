@@ -2,6 +2,7 @@ use core::ops::Range;
 use crate::ImageTrait;
 use crate::vec::*;
 use crate::rangetools::*;
+use std::path::Path;
 
 pub enum PixelPos {
 	R,
@@ -10,6 +11,7 @@ pub enum PixelPos {
 	A,
 }
 
+#[derive(Clone)]
 pub struct Image {
 	pub buffer: Vec<u8>,
 	pub width: usize,
@@ -98,6 +100,23 @@ impl Image {
 	#[inline]
 	pub fn range_y(&self) -> Range<i32> {
 		0..(self.height as i32)
+	}
+
+	pub fn save_png(&self, path: &Path) -> Result<(), std::io::Error> {
+		use std::fs::File;
+		use std::io::BufWriter;
+
+		let file = File::create(path)?;
+		let w = &mut BufWriter::new(file);
+
+		let mut encoder = png::Encoder::new(w, self.width as u32, self.height as u32);
+		encoder.set_color(png::ColorType::RGBA);
+		encoder.set_depth(png::BitDepth::Eight);
+		let mut writer = encoder.write_header()?;
+
+		writer.write_image_data(&self.buffer)?;
+
+		Ok(())
 	}
 }
 
