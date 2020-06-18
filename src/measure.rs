@@ -63,7 +63,7 @@ impl Clock {
 }
 
 #[inline]
-pub fn time<F: FnOnce(Clock) -> ()>(f: F) -> Duration {
+pub fn time<F: FnOnce(Clock)>(f: F) -> Duration {
 	let clock = Clock::new(now());
 	f(clock.clone());
 	clock.elapsed()
@@ -91,7 +91,7 @@ impl AverageTimer {
 	}
 
 	#[inline]
-	pub fn time_avg<F: FnOnce(Clock) -> ()>(&mut self, f: F) -> AverageDuration {
+	pub fn time_avg<F: FnOnce(Clock)>(&mut self, f: F) -> AverageDuration {
 		self.total_duration += time(f).seconds;
 		self.counter += 1;
 		self.weight += 1.0;
@@ -125,7 +125,7 @@ impl CountTrigger {
 	}
 
 	#[inline]
-	pub fn action<F: FnOnce() -> ()>(&mut self, f: F) -> bool {
+	pub fn action<F: FnOnce()>(&mut self, f: F) -> bool {
 		self.counter += 1;
 		f();
 		self.counter % self.trigger == 1 || self.trigger == 1
@@ -152,7 +152,7 @@ impl FpsWithCounter {
 	}
 
 	#[inline]
-	pub fn action<F: FnMut(Clock) -> ()>(&mut self, f: F) -> Option<Duration> {
+	pub fn action<F: FnMut(Clock)>(&mut self, f: F) -> Option<Duration> {
 		let mut duration = Duration::from_seconds(0.0);
 		let is_trigger = self.counter.action(|| {
 			duration = time(f)
@@ -165,7 +165,7 @@ impl FpsWithCounter {
 	}
 
 	#[inline]
-	pub fn action_avg<F: FnMut(Clock) -> ()>(&mut self, f: F) -> Option<Duration> {
+	pub fn action_avg<F: FnMut(Clock)>(&mut self, f: F) -> Option<Duration> {
 		let mut duration = Duration::from_seconds(0.0);
 		let timer = &mut self.timer;
 		let is_trigger = self.counter.action(|| {
