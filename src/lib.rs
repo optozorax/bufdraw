@@ -226,7 +226,7 @@ pub fn start<T: 'static +  MyEvents + ImageTrait>(t: T) {
 		env_logger::init();
 	}
 
-	miniquad::start(conf::Conf::default(), |mut ctx| {
+	miniquad::start(conf::Conf { high_dpi: true, ..Default::default() }, |mut ctx| {
 		let mut result = MyWindow::new(&mut ctx, t);
 		result.external.init();
 		let current_size = ctx.screen_size();
