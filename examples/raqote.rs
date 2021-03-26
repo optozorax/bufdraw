@@ -113,6 +113,39 @@ impl MyEvents for Window {
 	}
 }
 
+fn draw_rect(image: &mut DrawTarget, pos: Vec2i, size: Vec2i) {
+	let mut pb = PathBuilder::new();
+	pb.move_to(pos.x.into(), pos.y.into());
+	pb.cubic_to(150., 40., 175., self.counter as f32, 200., 10.);
+	pb.quad_to(120., 100., 80., 200.);
+	pb.quad_to(150., 180., 300., 300.);
+	pb.close();
+	let path = pb.finish();
+
+	let gradient = Source::new_radial_gradient(
+		Gradient {
+			stops: vec![
+				GradientStop {
+					position: 0.2,
+					color: raqote::Color::new(0xff, 0, 0xff, 0),
+				},
+				GradientStop {
+					position: 0.8,
+					color: raqote::Color::new(0xff, 0xff, 0xff, 0xff),
+				},
+				GradientStop {
+					position: 1.,
+					color: raqote::Color::new(0xff, 0xff, 0, 0xff),
+				},
+			],
+		},
+		Point::new(150., 150.),
+		128.,
+		Spread::Pad,
+	);
+	dt.fill(&path, &gradient, &DrawOptions::new());
+}
+
 use rusttype::{point, Font, Scale};
 
 // Modified https://github.com/redox-os/rusttype/blob/master/dev/examples/image.rs

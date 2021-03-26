@@ -83,7 +83,7 @@ impl WindowBase {
 			wheel: Vec2i::default(),
 			text_cache: TextCache::new(Font::from_bytes(font_data as &[u8]).expect("Error constructing Font")),
 			text: String::from("nothing\n"),
-			rect_size: 10,
+			rect_size: 255,
 
 			one_touch: None,
 			three_touch: None,

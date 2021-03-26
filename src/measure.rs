@@ -10,12 +10,12 @@ pub struct PerformanceMeasurer {
 }
 
 // Ticks per second
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Clock {
 	current_time: f64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Duration {
 	pub seconds: f64,
 }

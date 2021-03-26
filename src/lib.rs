@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use miniquad::*;
 use crate::vec::*;
 
@@ -69,6 +70,12 @@ struct MyWindow<T: MyEvents + ImageTrait> {
 	bindings: Option<Bindings>,
 
 	last_mouse_pos: Vec2i,
+
+	user_render: VecDeque<f64>,
+	system_render: VecDeque<f64>,
+	all_render: VecDeque<f64>,
+
+	fps: measure::FpsByLastTime,
 }
 
 impl<T: MyEvents + ImageTrait> MyWindow<T> {
@@ -115,7 +122,12 @@ impl<T: MyEvents + ImageTrait> MyWindow<T> {
 					],
 					shader,
 				)
-			}
+			}, 
+
+			user_render: Default::default(),
+			system_render: Default::default(),
+			all_render: Default::default(),
+			fps: measure::FpsByLastTime::new(3.),
 		}
 	}
 }
@@ -126,10 +138,12 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
+		let mut user_time = measure::Duration { seconds: 0. };
+		let render_time = measure::time(|_| {
 		ctx.begin_default_pass(Default::default());
 		ctx.apply_pipeline(&self.pipeline);
 
-		self.external.draw();
+		user_time = measure::time(|_| {self.external.draw(); });
 
 		if let Some(texture) = self.texture {
 			texture.update(ctx, self.external.get_rgba8_buffer());
@@ -153,6 +167,27 @@ impl<T: MyEvents + ImageTrait> EventHandler for MyWindow<T> {
 		ctx.end_render_pass();
 
 		ctx.commit_frame();
+		});
+		self.user_render.push_back(user_time.seconds * 1000.); 
+		if self.user_render.len() > 200 { self.user_render.pop_front(); }
+
+		self.system_render.push_back((render_time.seconds - user_time.seconds) * 1000.);
+		if self.system_render.len() > 200 { self.system_render.pop_front(); }
+
+		self.all_render.push_back(render_time.seconds * 1000.);
+		if self.all_render.len() > 200 { self.all_render.pop_front(); }
+
+		self.fps.frame();
+
+		print!(
+			"\ruser render: {:5.1}ms, system render: {:5.1}ms, all render: {:5.1}ms, fps: {:5.1}     ",
+			self.user_render.iter().sum::<f64>() / self.user_render.len() as f64,
+			self.system_render.iter().sum::<f64>() / self.system_render.len() as f64,
+			self.all_render.iter().sum::<f64>() / self.all_render.len() as f64,
+			self.fps.fps(),
+		);
+		use std::io::{self, Write};
+		io::stdout().flush().unwrap();
 	}
 
 	fn resize_event(&mut self, _ctx: &mut Context, width: f32, height: f32) {
